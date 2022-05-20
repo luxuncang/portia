@@ -13,7 +13,7 @@ class RegexLinkExtractor(BaseLinkExtractor):
     def __init__(self, regex=None, **kwargs):
         super(RegexLinkExtractor, self).__init__(**kwargs)
         self.allowed_schemes = [x for x in self.allowed_schemes if x and isinstance(x, six.string_types)]
-        regex = regex or '(?:%s)://%s' % ('|'.join(self.allowed_schemes), URL_DEFAULT_REGEX)
+        regex = regex or f"(?:{'|'.join(self.allowed_schemes)})://{URL_DEFAULT_REGEX}"
         self.regex = re.compile(regex)
 
     def _extract_links(self, response):

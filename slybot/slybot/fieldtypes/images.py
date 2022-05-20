@@ -8,6 +8,4 @@ class ImagesFieldTypeProcessor(UrlFieldTypeProcessor):
     description = 'extracts image URLs'
 
     def extract(self, text):
-        if text is not None:
-            return extract_image_url(text) or ''
-        return ''
+        return extract_image_url(text) or '' if text is not None else ''

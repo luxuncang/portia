@@ -15,9 +15,7 @@ class UrlFieldTypeProcessor(object):
     limit = 80
 
     def extract(self, text):
-        if text is not None:
-            return strip_url(text)
-        return ''
+        return strip_url(text) if text is not None else ''
 
     def adapt(self, text, htmlpage=None):
         if htmlpage is None:

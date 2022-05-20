@@ -46,9 +46,7 @@ class BaseRelationshipDescriptor(object):
 
 class BelongsToDescriptor(BaseRelationshipDescriptor):
     def __get__(self, instance, instance_type=None):
-        if instance is None:
-            return self
-        return instance.get_data(self.attrname, None)
+        return self if instance is None else instance.get_data(self.attrname, None)
 
     def __set__(self, instance, value):
         self._validate(value)
@@ -140,22 +138,21 @@ class BaseRelationship(fields.Nested):
         return super(BaseRelationship, self).schema
 
     def _serialize(self, nested_obj, attr, obj):
-        if self.polymorphic:
-            objects = nested_obj
-            if not self.many:
-                objects = [nested_obj]
-            result = []
-            for polymorphic_object in objects:
-                polymorphic_relationship = self._get_field_for_polymorphic(
-                    polymorphic_object.__class__)
-                result.append(
-                    polymorphic_relationship._serialize(
-                        polymorphic_object, attr, obj))
-            if len(result) == 1 and not self.many:
-                result = result[0]
-            return result
-
-        return super(BaseRelationship, self)._serialize(nested_obj, attr, obj)
+        if not self.polymorphic:
+            return super(BaseRelationship, self)._serialize(nested_obj, attr, obj)
+        objects = nested_obj
+        if not self.many:
+            objects = [nested_obj]
+        result = []
+        for polymorphic_object in objects:
+            polymorphic_relationship = self._get_field_for_polymorphic(
+                polymorphic_object.__class__)
+            result.append(
+                polymorphic_relationship._serialize(
+                    polymorphic_object, attr, obj))
+        if len(result) == 1 and not self.many:
+            result = result[0]
+        return result
 
     def _deserialize(self, value, attr, data):
         if self.polymorphic:
@@ -200,13 +197,15 @@ class BaseRelationship(fields.Nested):
                 not isinstance(self._model, string_types)):
             if self.related_name not in self._model._fields:
                 raise ImproperlyConfigured(
-                    u"Model '{}' has not declared field '{}'".format(
-                        self._model.__name__, self.related_name))
+                    f"Model '{self._model.__name__}' has not declared field '{self.related_name}'"
+                )
+
             related_field = self._model._fields[self.related_name]
             if related_field.related_name != attrname:
                 raise ImproperlyConfigured(
-                    u"Related name of Model '{}' field '{}' is not '{}'".format(
-                        self._model.__name__, self.related_name, attrname))
+                    f"Related name of Model '{self._model.__name__}' field '{self.related_name}' is not '{attrname}'"
+                )
+
             class_includes_relationships = \
                 self._includes_relationships(self, self._model)
             related_includes_relationships = \
@@ -214,12 +213,9 @@ class BaseRelationship(fields.Nested):
                  self._includes_relationships(related_field, cls))
             if class_includes_relationships and related_includes_relationships:
                 raise ImproperlyConfigured(
-                    u"Related fields '{}' of model '{}' and "
-                    u"'{}' of model '{}' cannot both include relationships. "
-                    u"Use ignore_in_file or only to limit the fields on one "
-                    u"side of the relationship.".format(
-                        attrname, cls.__name__,
-                        self.related_name, self._model.__name__))
+                    f"Related fields '{attrname}' of model '{cls.__name__}' and '{self.related_name}' of model '{self._model.__name__}' cannot both include relationships. Use ignore_in_file or only to limit the fields on one side of the relationship."
+                )
+
 
         descriptor = self.descriptor_class(
             self._model, attrname=attrname, related_name=self.related_name)
@@ -230,15 +226,18 @@ class BaseRelationship(fields.Nested):
 
     @staticmethod
     def _includes_relationships(field, model):
-        includes_relationships = True
-        if field.only:
-            includes_relationships = False
-            for field in ([field.only]
-                          if isinstance(field.only, string_types)
-                          else field.only):
-                if isinstance(model._fields[field], BaseRelationship):
-                    includes_relationships = True
-        return includes_relationships
+        return (
+            any(
+                isinstance(model._fields[field], BaseRelationship)
+                for field in (
+                    [field.only]
+                    if isinstance(field.only, string_types)
+                    else field.only
+                )
+            )
+            if field.only
+            else True
+        )
 
 
 class BelongsTo(BaseRelationship):

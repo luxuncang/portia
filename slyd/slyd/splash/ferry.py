@@ -188,10 +188,10 @@ class SpiderSpec(object):
         return self.spider['templates']
 
     def __repr__(self):
-        return '{}({})'.format(self.__class__.__name__, str(self))
+        return f'{self.__class__.__name__}({str(self)})'
 
     def __str__(self):
-        return '{}, {}'.format(self.project, self.name)
+        return f'{self.project}, {self.name}'
 
 
 class PortiaJSApi(QObject):
@@ -372,8 +372,7 @@ class FerryServerProtocol(WebSocketServerProtocol):
             reason = "Internal Server Error"
             message = "An unexpected error has occurred."
         log.err(failure)
-        event_id = getattr(failure, 'sentry_event_id', None)
-        if event_id:
+        if event_id := getattr(failure, 'sentry_event_id', None):
             message = "%s (Event ID: %s)" % (message, event_id)
 
         response = {
@@ -390,8 +389,9 @@ class FerryServerProtocol(WebSocketServerProtocol):
 
     def getElementByNodeId(self, nodeid):
         self.tab.web_page.mainFrame().evaluateJavaScript(
-            'livePortiaPage.pyGetByNodeId(%s)' % nodeid
+            f'livePortiaPage.pyGetByNodeId({nodeid})'
         )
+
         return self.js_api.getReturnedElement()
 
     def open_tab(self, meta=None):
@@ -516,19 +516,17 @@ class FerryServerProtocol(WebSocketServerProtocol):
             project, spider_name, spider, items, extractors)
 
     def __repr__(self):
-        return '{}({})'.format(self.__class__.__name__, str(self))
+        return f'{self.__class__.__name__}({str(self)})'
 
     def __str__(self):
         tab, spider, spec = '', '', ''
         if self.tab:
             try:
-                tab = '{}({})'.format(
-                    self.tab.__class__.__name__, self.tab.url)
+                tab = f'{self.tab.__class__.__name__}({self.tab.url})'
             except RuntimeError:
                 tab = 'MISSING'
         if self.spider:
-            spider = '{}({})'.format(
-                self.spider.__class__.__name__, self.spider.name)
+            spider = f'{self.spider.__class__.__name__}({self.spider.name})'
         if self.spiderspec:
             spec = str(self.spiderspec)
         return ', '.join(filter(bool, (tab, spider, spec)))
@@ -541,17 +539,13 @@ class FerryServerFactory(WebSocketServerFactory):
         self.assets = assets
 
     def __getitem__(self, key):
-        if key in self._peers:
-            return self._peers[key]
-        return None
+        return self._peers[key] if key in self._peers else None
 
     def __setitem__(self, key, value):
         self._peers[key] = value
 
     def __contains__(self, key):
-        if self._peers.get(key) is not None:
-            return True
-        return False
+        return self._peers.get(key) is not None
 
     def __repr__(self):
         return 'Ferry(%s)' % ', '.join('User(%s)' % (

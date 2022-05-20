@@ -80,7 +80,7 @@ class ProjectsManager(object):
 
     def validate_project_name(self, name):
         if not allowed_project_name(name):
-            raise BadRequest('Bad Request', 'Invalid project name %s.' % name)
+            raise BadRequest('Bad Request', f'Invalid project name {name}.')
 
     def copy_data(self, source, destination, spiders, items):
         raise NotImplementedError
@@ -101,10 +101,10 @@ class ProjectsManager(object):
         return body
 
     def __repr__(self):
-        return '%s(%s)' % (self.__class__.__name__, str(self))
+        return f'{self.__class__.__name__}({str(self)})'
 
     def __str__(self):
-        return '%s' % self.user
+        return f'{self.user}'
 
 
 class FileSystemProjectsManager(ProjectsManager):

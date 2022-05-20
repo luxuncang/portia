@@ -94,7 +94,7 @@ add_extractors_to_descriptors(simple_descriptors, {})
 td = TokenDict()
 html_page = HtmlPage(body=open_spec('stack_overflow.html'))
 extraction_page = parse_extraction_page(td, html_page)
-with open('%s/data/SampleProject/items.json' % PATH) as f:
+with open(f'{PATH}/data/SampleProject/items.json') as f:
     items = json.load(f)
 descriptors = {'#default': create_slybot_item_descriptor(items['default'],
                                                          'default')}
@@ -154,8 +154,7 @@ class ContainerExtractorTest(TestCase):
 
     def test_validate_and_adapt_item(self):
         bce = BaseContainerExtractor(basic_extractors, template)
-        data = {'price': ['10']}
-        data['_type'] = 'skip_checks'
+        data = {'price': ['10'], '_type': 'skip_checks'}
         result = bce._validate_and_adapt_item(data, template).dump()
         self.assertEqual(result,
                          {'price': ['10'], '_type': 'skip_checks'})
@@ -342,7 +341,7 @@ class ContainerExtractorTest(TestCase):
         self.assertEqual(items, [])
 
     def test_nested_items(self):
-        smanager = SlybotSpiderManager("%s/data/SampleProject" % PATH)
+        smanager = SlybotSpiderManager(f"{PATH}/data/SampleProject")
         name = 'books.toscrape.com'
         spider = smanager.create(name)
         spec = smanager._specs["spiders"][name]

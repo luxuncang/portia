@@ -28,8 +28,7 @@ def extract_data(url, html, spider, templates):
                                                          templates)
             items.append(value._values)
         else:
-            raise ValueError("Unexpected type %s from spider" %
-                             type(value))
+            raise ValueError(f"Unexpected type {type(value)} from spider")
     return items, links
 
 

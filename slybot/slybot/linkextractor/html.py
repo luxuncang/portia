@@ -1,6 +1,7 @@
 """
 Link extraction for auto scraping
 """
+
 import re
 import six
 from six.moves.urllib.parse import urljoin
@@ -17,8 +18,9 @@ from slybot.utils import htmlpage_from_response
 
 _META_REFRESH_CONTENT_RE = re.compile(r"(?P<int>(\d*\.)?\d+)\s*;\s*url=(?P<url>.*)")
 _ONCLICK_LINK_RE = re.compile("(?P<sep>('|\"))(?P<url>.+?)(?P=sep)")
-_ENTITIES_TO_KEEP = frozenset({c for c in name2codepoint} -
-                              {'amp', 'quot', 'lt', 'gt'})
+_ENTITIES_TO_KEEP = frozenset(
+    (set(name2codepoint) - {'amp', 'quot', 'lt', 'gt'})
+)
 
 
 def remove_entities(text, encoding):

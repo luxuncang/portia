@@ -42,9 +42,7 @@ class UrlGenerator(object):
         return [str(v) for v in values]
 
     def _process_range(self, values):
-        if len(values) > 3:
-            return []
-        return six.moves.range(*values)
+        return [] if len(values) > 3 else six.moves.range(*values)
 
     def _process_setting(self, values):
         if self.settings is None:
@@ -89,7 +87,7 @@ class UrlGenerator(object):
                 for name, value in params:
                     url_params[name] = value
                 url_params = urlencode(url_params)
-                yield '{}?{}'.format(url, url_params)
+                yield f'{url}?{url_params}'
             else:
                 yield url
 
@@ -98,8 +96,7 @@ class UrlGenerator(object):
         param = spec.get('params_template', {})
         paths = [self._build_section(d) for d in spec.get('paths', [])]
         params = [self._build_section(d, True) for d in spec.get('params', [])]
-        url_generator = self._generate_urls(template, paths, param, params)
-        return url_generator
+        return self._generate_urls(template, paths, param, params)
 
 
 generator = UrlGenerator()

@@ -86,7 +86,7 @@ class ProjectArchiver(object):
                     self._add_file(file_path, contents, now)
             else:
                 self._add_file(file_path, self.read_file(file_path), now)
-        file_list = set(f.filename for f in self._archive.filelist)
+        file_list = {f.filename for f in self._archive.filelist}
         for file_path in self.required_files:
             if file_path in file_list:
                 continue
@@ -135,7 +135,6 @@ class ProjectArchiver(object):
         templates, added = [], set()
         for template_path in spider_templates:
             added.add(template_path)
-            existing = {}
             template = self.read_file(template_path, deserialize=True)
             if template is None:
                 continue
@@ -144,9 +143,11 @@ class ProjectArchiver(object):
                 template_extractors = {e.get('field'): e.get('id')
                                        for e in template_extractors
                                        if 'field' in e and e['field']}
-            for field, eids in template_extractors.items():
-                existing[field] = [eid for eid in eids
-                                   if eid in extractors]
+            existing = {
+                field: [eid for eid in eids if eid in extractors]
+                for field, eids in template_extractors.items()
+            }
+
             template['extractors'] = existing
             templates.append(template)
         return templates, added
@@ -174,7 +175,7 @@ class ProjectArchiver(object):
 
     def _spider_path(self, file_path):
         if len(file_path.split(self.separator)) > 2:
-            return 'spiders/{}.json'.format(self._spider_name(file_path))
+            return f'spiders/{self._spider_name(file_path)}.json'
         return file_path
 
     def _paths(self, spiders):
@@ -186,8 +187,7 @@ class ProjectArchiver(object):
             return all_files, all_files, self._template_paths(None, all_files)
         if isinstance(spiders, six.string_types):
             spiders = [spiders]
-        spider_paths = set('spiders/{}.json'.format(spider)
-                           for spider in spiders)
+        spider_paths = {f'spiders/{spider}.json' for spider in spiders}
         all_files = self.list_files()
         template_paths = self._template_paths(spiders, all_files)
         templates = set(itertools.chain(*template_paths.values()))
@@ -236,7 +236,7 @@ class CodeProjectArchiver(ProjectArchiver):
 
             def listdir(self, *args, **kwargs):
                 if spiders and args == ['spiders']:
-                    return ['{}.json'.format(s) for s in spiders]
+                    return [f'{s}.json' for s in spiders]
                 path = self.rel_path(*args)
                 return itertools.chain(*self.storage.listdir(path))
 
@@ -265,4 +265,4 @@ class CodeProjectArchiver(ProjectArchiver):
         except ValueError:
             return self.name
         # Scrapy will not allow the use of a number as a project name
-        return 'A{}'.format(self.name)
+        return f'A{self.name}'

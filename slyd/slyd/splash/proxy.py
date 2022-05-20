@@ -119,7 +119,7 @@ class ProxyResource(Resource):
                 return self._load_resource(request, original_url, referer)
             request.setResponseCode(status_code or 500)
         else:
-            content = b''.join(chunk for chunk in reply.iter_content(65535))
+            content = b''.join(iter(reply.iter_content(65535)))
             request.setResponseCode(reply.status_code)
 
         headers = {

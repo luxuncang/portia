@@ -32,7 +32,7 @@ class LocalUser(AnonymousUser):
         return self.id
 
     def __str__(self):
-        return 'LocalUser({})'.format(self.username)
+        return f'LocalUser({self.username})'
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and other.id == self.id

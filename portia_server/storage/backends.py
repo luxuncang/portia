@@ -106,8 +106,7 @@ class BasePortiaStorage(CommittingStorage, Storage):
     def validate_filename(cls, s):
         s = text_type(s)
         if not cls.is_valid_filename(s):
-            raise InvalidFilename(
-                u"The string '{}' is not a valid filename.".format(s))
+            raise InvalidFilename(f"The string '{s}' is not a valid filename.")
         return s
 
     def open_with_default(self, name, default=None):
@@ -168,7 +167,7 @@ class FsStorage(BasePortiaStorage, FileSystemStorage):
                     six.reraise(*sys.exc_info())
 
         if not os.path.isdir(directory):
-            raise IOError("%s exists and is not a directory." % directory)
+            raise IOError(f"{directory} exists and is not a directory.")
 
         try:
             _file = None
@@ -214,8 +213,10 @@ class GitStorage(BasePortiaStorage):
         if commit is not None and isinstance(commit, string_types):
             commit = self.repo._repo.get_object(commit)
         if not commit:
-            branches = OrderedDict((('refs/heads/%s' % branch or 'master', 1),
-                                    ('refs/heads/master', 1)))
+            branches = OrderedDict(
+                ((f'refs/heads/{branch}' or 'master', 1), ('refs/heads/master', 1))
+            )
+
             for ref in branches:
                 try:
                     _commit_id = self.repo._repo.refs[ref]
@@ -242,7 +243,7 @@ class GitStorage(BasePortiaStorage):
             except ObjectMissing:
                 if retry and branch is not None:
                     if branch != 'master':
-                        del self.repo._repo.refs['refs/heads/%s' % branch]
+                        del self.repo._repo.refs[f'refs/heads/{branch}']
                         return self.checkout(branch='master', retry=False)
                     else:
                         six.reraise(*sys.exc_info())
@@ -258,7 +259,7 @@ class GitStorage(BasePortiaStorage):
 
     def _open(self, name, mode='rb'):
         name = self.path(name)
-        logger.debug('Dulwich open: {}'.format(name))
+        logger.debug(f'Dulwich open: {name}')
         if self.isfile(name):
             _, sha = self._working_tree[name]
             if sha in self._blobs:
@@ -294,7 +295,7 @@ class GitStorage(BasePortiaStorage):
         return False
 
     def listdir(self, path):
-        path = '{}/'.format(self.path(path))
+        path = f'{self.path(path)}/'
         # All paths should be relative to the project directory
         path_parts = len(path.strip('/').split('/'))
         if path == '/':
@@ -319,7 +320,7 @@ class GitStorage(BasePortiaStorage):
 
     def isdir(self, name):
         name = self.path(name)
-        dir_name = name + '/'
+        dir_name = f'{name}/'
         if any(path.startswith(dir_name) for path in self._working_tree):
             return True
         return False
@@ -341,11 +342,10 @@ class GitStorage(BasePortiaStorage):
             self._working_tree[new_name] = self._working_tree[old_name]
             del self._working_tree[old_name]
         elif self.isdir(old_name):
-            dir_name = old_name + '/'
+            dir_name = f'{old_name}/'
             for path in self._working_tree:
                 if path.startswith(dir_name):
-                    new_path = self.path(
-                        '{}/{}'.format(new_name, path[len(old_name):]))
+                    new_path = self.path(f'{new_name}/{path[len(old_name):]}')
                     self._working_tree[new_path] = self._working_tree[path]
                     del self._working_tree[path]
 
@@ -353,7 +353,7 @@ class GitStorage(BasePortiaStorage):
         name = self.path(name)
         if not self.isdir(name):
             raise IOError(2, 'No file or directory', name)
-        dir_name = name + '/'
+        dir_name = f'{name}/'
         for path, _, _ in self._working_tree.items():
             if path.startswith(dir_name):
                 del self._working_tree[path]
@@ -384,10 +384,11 @@ class GitStorage(BasePortiaStorage):
             working_tree.id: working_tree,
         }
 
-        blobs = []
-        for change in tree_changes(fake_store, self._tree.id, working_tree.id):
-            if change.new.sha in self._blobs:
-                blobs.append(self._blobs[change.new.sha])
+        blobs = [
+            self._blobs[change.new.sha]
+            for change in tree_changes(fake_store, self._tree.id, working_tree.id)
+            if change.new.sha in self._blobs
+        ]
 
         commit = self.repo._create_commit()
         commit.parents = [self._commit.id]

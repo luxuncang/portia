@@ -91,7 +91,7 @@ class ItemProcessor(object):
         attribute = metadata.get(u'attribute', content_field)
         if attribute == content_field:
             return u'self::node()'
-        return u'@%s' % attribute
+        return f'@{attribute}'
 
     def _process_fields(self, data):
         """Convert extracted data into ItemField fields."""
@@ -123,9 +123,7 @@ class ItemProcessor(object):
 
     def _add_item(self, item, fields=None):
         fields = self.fields if fields is None else fields
-        child = None
-        if len(item.fields) == 1:
-            child = next(six.itervalues(item.fields))
+        child = next(six.itervalues(item.fields)) if len(item.fields) == 1 else None
         if child and item.descriptor == child.extractor:
             fields[child.id] = child
         else:
@@ -138,10 +136,7 @@ class ItemProcessor(object):
         elif data and not isinstance(data[0], (tuple, dict)):
             data = [data]
         for i in data:
-            if hasattr(i, u'items'):
-                i = i.items()
-            else:
-                i = (i,)
+            i = i.items() if hasattr(i, u'items') else (i, )
             other_fields = []
             for fields in chain(arg_to_iter(i), other_fields):
                 try:
@@ -187,9 +182,9 @@ class ItemProcessor(object):
                 self.fields[field_id] = ProcessedField(
                     value, meta, self.schema,
                     self.modifiers, self.htmlpage)
-        all_selector_annotations = list(
-            chain(selector_annotations, field_annotations))
-        if all_selector_annotations:
+        if all_selector_annotations := list(
+            chain(selector_annotations, field_annotations)
+        ):
             self._process_css_and_xpath(all_selector_annotations, selector)
 
     def _selector_annotations(self):
@@ -200,8 +195,8 @@ class ItemProcessor(object):
             surrounds = arg_to_iter(annotation.surrounds_attribute) or []
             tags = chain(*(a for _, a in annotation.tag_attributes))
             for attribute in chain(surrounds, tags):
-                new_attribute = {k: v for k, v in meta.items()}
-                new_attribute.update(attribute)
+                new_attribute = dict(meta.items())
+                new_attribute |= attribute
                 yield new_attribute
 
     @staticmethod
@@ -219,11 +214,12 @@ class ItemProcessor(object):
         if self.parent_region:
             if isinstance(self.parent_region, list):
                 pquery = ', '.join(
-                    '[data-tagid="{}"]'.format(self.get_region_id(r))
-                    for r in self.parent_region)
+                    f'[data-tagid="{self.get_region_id(r)}"]'
+                    for r in self.parent_region
+                )
+
             else:
-                pquery = '[data-tagid="{}"]'.format(
-                    self.get_region_id(self.parent_region))
+                pquery = f'[data-tagid="{self.get_region_id(self.parent_region)}"]'
             containers = {e._root for e in selector.css(pquery)}
         for i, a in enumerate(annotations, start=len(self.fields)):
             mode = a.get(u'selection_mode')
@@ -323,8 +319,7 @@ class ItemProcessor(object):
         if include_meta:
             item[u'_meta'] = meta
         if u'_type' not in item:
-            _type = getattr(self.schema, u'description', schema_id)
-            if _type:
+            if _type := getattr(self.schema, u'description', schema_id):
                 item[u'_type'] = _type
         return item
 
@@ -354,10 +349,12 @@ class ItemProcessor(object):
                 if getattr(field, 'should_overwrite', False):
                     item_dict[key] = value
                 else:
-                    item_dict[key] = [
-                        v for v in chain(arg_to_iter(item_dict.get(key, [])),
-                                         arg_to_iter(value))
-                    ]
+                    item_dict[key] = list(
+                        chain(
+                            arg_to_iter(item_dict.get(key, [])), arg_to_iter(value)
+                        )
+                    )
+
             else:
                 item_dict[field] = value
         return item_dict
@@ -389,11 +386,10 @@ class ItemProcessor(object):
                                                   u'attribute': u'content'})
 
     def __str__(self):
-        return u'%s, %s' % (self.id, self.region_id)
+        return f'{self.id}, {self.region_id}'
 
     def __repr__(self):
-        return u'%s(%s, %s)' % (self.__class__.__name__, str(self),
-                                repr(self.fields))
+        return f'{self.__class__.__name__}({str(self)}, {repr(self.fields)})'
 
 
 class ItemField(object):
@@ -417,9 +413,7 @@ class ItemField(object):
 
     @cached_property
     def ignore(self):
-        if not self._field:
-            return True
-        return False
+        return not self._field
 
     @cached_property
     def description(self):
@@ -474,10 +468,12 @@ class ItemField(object):
         extractors = _meta.get(u'extractors', [])
         if isinstance(extractors, dict):
             extractors = extractors.get(field, [])
-        adaptors = []
-        for extractor in extractors:
-            if extractor in modifiers:
-                adaptors.append(modifiers[extractor])
+        adaptors = [
+            modifiers[extractor]
+            for extractor in extractors
+            if extractor in modifiers
+        ]
+
         return field_extraction, adaptors
 
     def _process(self):
@@ -489,11 +485,14 @@ class ItemField(object):
             if value:
                 values.append(value)
         if hasattr(self.extractor, u'adapt'):
-            values = [self.extractor.adapt(x, self.htmlpage) for x in values
-                      if x and not isinstance(x, (dict, ItemProcessor))]
+            return [
+                self.extractor.adapt(x, self.htmlpage)
+                for x in values
+                if x and not isinstance(x, (dict, ItemProcessor))
+            ]
+
         else:
-            values = list(filter(bool, values))
-        return values
+            return list(filter(bool, values))
 
     def _adapt(self, values):
         for adaptor in self.adaptors:
@@ -507,12 +506,10 @@ class ItemField(object):
         return hash(str(self.id) + str(self._field))
 
     def __str__(self):
-        return u'%s: %s | id=%s' % (self.description, self.dump(), self.id)
+        return f'{self.description}: {self.dump()} | id={self.id}'
 
     def __repr__(self):
-        return u'%s(%s, field=%s, extractor=%s, adaptors=%s)' % (
-            self.__class__.__name__, str(self), self._field, self.extractor,
-            self.adaptors)
+        return f'{self.__class__.__name__}({str(self)}, field={self._field}, extractor={self.extractor}, adaptors={self.adaptors})'
 
 
 class ProcessedField(ItemField):

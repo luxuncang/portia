@@ -23,7 +23,7 @@ class ModelCopier(object):
         self.project.extractors
         self.from_project.schemas
         self.from_project.extractors
-        self.spider_ids = set(spider.id for spider in self.project.spiders)
+        self.spider_ids = {spider.id for spider in self.project.spiders}
 
         self.copied_fields = {}
         self.copied_schemas = {}
@@ -99,8 +99,9 @@ class ModelCopier(object):
 
     def copy_annotation(self, annotation, item, field):
         copied_ann = annotation.copy(
-            '{}|{}'.format(short_guid(), short_guid()),
-            storage=self.storage)
+            f'{short_guid()}|{short_guid()}', storage=self.storage
+        )
+
         copied_ann.field = self.copied_fields[field.id]
         item.annotations.add(copied_ann)
 
@@ -153,7 +154,7 @@ class ModelCopier(object):
         return copied_extractor
 
     def _copy_body(self, body, sample):
-        body_id = '{}_{}'.format(sample.id, body.Meta.name)
+        body_id = f'{sample.id}_{body.Meta.name}'
         copied_body = body.copy(body_id, storage=self.storage)
         copied_body.sample = sample
 
@@ -163,9 +164,8 @@ class ModelCopier(object):
     def _unique_id(self, spider_id):
         unique_id = spider_id
         while unique_id in self.spider_ids:
-            match = re.match(self.SPIDER_NAME, unique_id)
-            if match:
-                unique_id = match.group(1) + str(int(match.group(2)) + 1)
+            if match := re.match(self.SPIDER_NAME, unique_id):
+                unique_id = match[1] + str(int(match[2]) + 1)
             else:
                 unique_id += '_1'
         return unique_id

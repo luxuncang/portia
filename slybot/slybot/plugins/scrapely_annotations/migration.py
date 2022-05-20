@@ -52,10 +52,7 @@ def short_guid():
 
 
 def gen_id(disallow=None):
-    if disallow is not None:
-        disallow = set(disallow)
-    else:
-        disallow = []
+    disallow = set(disallow) if disallow is not None else []
     _id = short_guid()
     while _id in disallow:
         _id = short_guid()
@@ -107,7 +104,7 @@ def repair_ids(sample):
         except ValueError:
             pass
     for id_, affected in aids.items():
-        if not id_ or len(id_) in (14, 21):
+        if not id_ or len(id_) in {14, 21}:
             continue
         full_id = full_ids[id_]
         if id_ != full_id:
@@ -174,7 +171,6 @@ def port_sample(sample, schemas=None, extractors=None):
             }
         }
         return sample, schemas
-    new_annotations = []
     a = find_element(annotations[0], sel)
     for b in annotations[1:]:
         b = find_element(b, sel)
@@ -183,14 +179,14 @@ def port_sample(sample, schemas=None, extractors=None):
     container = _create_container(
         a if parent is None else parent, container_id, selector=sel,
         schema_id=schema_id)
-    new_annotations.append(container)
+    new_annotations = [container]
     for a in standard_annos:
         a.pop('variant', None)
     new_annotations.extend(standard_annos)
     new_annotations.extend(port_generated(generated_annos, sel))
     new_annotations.extend(port_variants(variant_annos, sel))
     for a in new_annotations:
-        if not (a.get('item_container') and a.get('container_id')):
+        if not a.get('item_container') or not a.get('container_id'):
             if container_id == a.get('id'):
                 continue
             a['container_id'] = container_id
@@ -207,8 +203,7 @@ def find_element(tagid, sel):
         return tagid
     if isinstance(tagid, dict):
         tagid = tagid.get('tagid')
-    elements = sel.xpath('//*[@data-tagid="%s"]' % tagid)
-    if elements:
+    if elements := sel.xpath('//*[@data-tagid="%s"]' % tagid):
         return elements[0].root
 
 
@@ -240,7 +235,7 @@ def handle_tables(selector):
         sel = generalized[:]
         for selection in section:
             idx = sel.index(selection)
-            sel[idx] = sel[idx] + ' > *'
+            sel[idx] = f'{sel[idx]} > *'
         selectors.append(' '.join(sel))
     return ', '.join([selector] + selectors)
 
@@ -256,10 +251,9 @@ def find_css_selector(elem, sel, depth=0, previous_tbody=False):
         if parent is not None:
             children = filter(lambda x: x.tag is not Comment,
                               parent.getchildren())
-            index = children.index(elem) + 1
+            return children.index(elem) + 1
         else:
-            index = 0
-        return index
+            return 0
 
     def css(selector, query):
         try:
@@ -270,14 +264,11 @@ def find_css_selector(elem, sel, depth=0, previous_tbody=False):
     def build_table_selector(elem):
         parent = find_css_selector(elem.getparent(), sel, depth + 1)
         join = '' if previous_tbody else ' >'
-        selector = '%s%s %s:nth-child(%s)' % (
-            parent, join, tag_name, children_index(elem)
-        )
+        selector = f'{parent}{join} {tag_name}:nth-child({children_index(elem)})'
         e = css(sel, selector)
         if not e:
             join = '' if previous_tbody or tag_name == 'tr' else ' >'
-            selector = '%s%s %s:nth-child(%s)' % (
-                parent, join, tag_name, children_index(elem))
+            selector = f'{parent}{join} {tag_name}:nth-child({children_index(elem)})'
         return selector
 
     elem_id = elem.attrib.get('id')
@@ -379,12 +370,25 @@ def port_variants(variant_annotations, sel, schema_id=None):
             annotation['container_id'] = container_id
             del annotation['variant']
         annotations.extend(first)
-        annotations.append(_create_container(container, container_id,
-                                             field='variants', selector=sel,
-                                             schema_id=schema_id))
-        annotations.append(_create_container(repeated_container, container_id,
-                                             repeated=True, siblings=siblings,
-                                             selector=sel))
+        annotations.extend(
+            (
+                _create_container(
+                    container,
+                    container_id,
+                    field='variants',
+                    selector=sel,
+                    schema_id=schema_id,
+                ),
+                _create_container(
+                    repeated_container,
+                    container_id,
+                    repeated=True,
+                    siblings=siblings,
+                    selector=sel,
+                ),
+            )
+        )
+
     return variant_annotations
 
 
@@ -449,7 +453,7 @@ def _create_container(element, container_id, repeated=False, siblings=0,
     else:
         s = find_generalized_css_selector(element, selector)
     data = {
-        'id': '%s%s' % (container_id, '#parent' if repeated else ''),
+        'id': f"{container_id}{'#parent' if repeated else ''}",
         'container_id': None,
         'accept_selectors': [s],
         'reject_selectors': [],
@@ -462,6 +466,7 @@ def _create_container(element, container_id, repeated=False, siblings=0,
         'annotations': {'#portia-content': '#dummy'},
         'text-content': '#portia-content',
     }
+
     if repeated:
         data['container_id'] = container_id
     if hasattr(element, 'attrib') and 'data-tagid' in element.attrib:
@@ -517,8 +522,7 @@ def port_generated(generated_annotations, sel):
                 text = []
                 order = ('tail', 'text') if reverse else ('text', 'tail')
                 for elem in others:
-                    for t in order:
-                        text.append(getattr(elem, t) or ' ')
+                    text.extend((getattr(elem, t) or ' ') for t in order)
                     if any(t.strip() for t in text):
                         break
                 return ''.join(text)
@@ -593,7 +597,7 @@ def load_annotations(body):
             annotation['id'] = gen_id(disallow=existing_ids)
         existing_ids.add(annotation['id'])
         annotations.append(annotation)
-    for elem in sel.xpath('//*[@%s]' % '|@'.join(IGNORE_ATTRIBUTES)):
+    for elem in sel.xpath(f"//*[@{'|@'.join(IGNORE_ATTRIBUTES)}]"):
         attributes = elem.root.attrib
         for attribute in IGNORE_ATTRIBUTES:
             if attribute in attributes:
@@ -689,8 +693,9 @@ def _guess_schema_id(sample, schemas):
         annotations = sample['plugins']['annotations-plugin']['extracts']
     except KeyError:
         annotations = []
-    annotations_with_schemas = [a for a in annotations if 'schema_id' in a]
-    if annotations_with_schemas:
+    if annotations_with_schemas := [
+        a for a in annotations if 'schema_id' in a
+    ]:
         parent = sorted(annotations_with_schemas, key=container_id_key)[0]
         return parent['schema_id']
 
@@ -701,10 +706,12 @@ def _guess_schema_id(sample, schemas):
             fields.add(list(annotation['data'].values())[0]['field'])
         except KeyError:
             pass
-    scores = {}
     fields = set()
-    for schema_id, schema in schemas.items():
-        scores[schema_id] = len(set(schema.get('fields')) & fields)
+    scores = {
+        schema_id: len(set(schema.get('fields')) & fields)
+        for schema_id, schema in schemas.items()
+    }
+
     if any(score > 0 for score in scores.values()):
         return max(scores.items(), key=itemgetter(1))[0]
 
@@ -726,9 +733,7 @@ def add_fields(schema, annotations):
 
 def create_schema(schemas, annotations):
     fields = _create_fields(annotations, ())
-    schema = {'name': 'schema_%s' % (len(schemas) + 1),
-              'fields': fields}
-    return schema
+    return {'name': f'schema_{len(schemas) + 1}', 'fields': fields}
 
 
 def _create_fields(annotations, field_ids):
@@ -753,7 +758,7 @@ def _create_fields(annotations, field_ids):
 
 def _field(field_id, num_fields):
     field_name = field_id
-    if _ID_RE.match(field_id):
+    if _ID_RE.match(field_name):
         field_name = 'field%d' % num_fields
         num_fields += 1
     field = {'name': field_name, 'vary': False,
@@ -775,8 +780,7 @@ class PartialKeyDict(dict):
         except KeyError:
             removed_parent, key = self._remove_parent(key)
             if len(key) == 13:
-                full_key = self._find_key(key)
-                if full_key:
+                if full_key := self._find_key(key):
                     if removed_parent:
                         key, full_key = self._add_parent(key, full_key)
                     self[key] = full_key
@@ -785,10 +789,7 @@ class PartialKeyDict(dict):
 
     def __setitem__(self, key, value):
         removed_parent, key = self._remove_parent(key)
-        if key and len(key) not in (14, 21):
-            full_key = self._find_key(key)
-        else:
-            full_key = key
+        full_key = self._find_key(key) if key and len(key) not in (14, 21) else key
         if len(full_key) != 14:
             raise ValueError('ids must be of length 14')
         if removed_parent:
@@ -797,10 +798,7 @@ class PartialKeyDict(dict):
             super(PartialKeyDict, self).__setitem__(key, full_key)
 
     def _find_key(self, key):
-        for k in self:
-            if k.startswith(key):
-                return k
-        return None
+        return next((k for k in self if k.startswith(key)), None)
 
     def _remove_parent(self, key):
         if key.endswith('#parent'):

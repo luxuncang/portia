@@ -32,22 +32,32 @@ def main():
 
     command_spec = ["scrapy", "crawl", args[1]] if len(args) == 2 else ["scrapy", "list"]
     if project_specs.endswith(".zip"):
-        command_spec.extend([
-            "-s", "PROJECT_DIR=%s" % project_specs,
-            "-s", "SPIDER_MANAGER_CLASS=slybot.spidermanager.SlybotSpiderManager",
-        ])
+        command_spec.extend(
+            [
+                "-s",
+                f"PROJECT_DIR={project_specs}",
+                "-s",
+                "SPIDER_MANAGER_CLASS=slybot.spidermanager.SlybotSpiderManager",
+            ]
+        )
+
     else:
-        command_spec.extend([
-            "-s", "PROJECT_DIR=%s" % project_specs,
-            "-s", "SPIDER_LOADER_CLASS=slybot.spidermanager.SlybotSpiderManager",
-        ])
+        command_spec.extend(
+            [
+                "-s",
+                f"PROJECT_DIR={project_specs}",
+                "-s",
+                "SPIDER_LOADER_CLASS=slybot.spidermanager.SlybotSpiderManager",
+            ]
+        )
+
 
     if opts.logfile:
-        command_spec.append("--logfile=%s" % opts.logfile)
+        command_spec.append(f"--logfile={opts.logfile}")
     if opts.output:
-        command_spec.append("--output=%s" % opts.output)
+        command_spec.append(f"--output={opts.output}")
     if opts.output_format:
-        command_spec.append("--output-format=%s" % opts.output_format)
+        command_spec.append(f"--output-format={opts.output_format}")
 
     for sparg in opts.spargs:
         command_spec.append("-a")

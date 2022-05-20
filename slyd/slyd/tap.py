@@ -89,5 +89,4 @@ def makeService(config, settings_module=None):
     if settings_module is None:
         import slyd.settings as settings_module
     root = create_root(config, settings_module)
-    site = Site(root, logFormatter=debugLogFormatter)
-    return site
+    return Site(root, logFormatter=debugLogFormatter)

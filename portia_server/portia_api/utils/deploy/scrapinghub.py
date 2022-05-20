@@ -35,10 +35,8 @@ class ScrapinghubDeploy(BaseDeploy):
         try:
             conf.load(self.storage.open('scrapinghub.yml'))
         except OSError:
-            raise ('Need a `scrapinghub.yml` file to identify which project '
-                   'to deploy to. Find more information at: {}'.format(
-                    self.SHUB_DOCS_URL
-                   ))
+            raise f'Need a `scrapinghub.yml` file to identify which project to deploy to. Find more information at: {self.SHUB_DOCS_URL}'
+
         return conf
 
     def _default_config(self):

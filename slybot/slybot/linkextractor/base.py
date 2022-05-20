@@ -1,6 +1,7 @@
 """
 Link extraction for auto scraping
 """
+
 import re
 import os
 import posixpath
@@ -9,7 +10,7 @@ from scrapy.linkextractors import IGNORED_EXTENSIONS
 
 _ONCLICK_LINK_RE = re.compile("(?P<sep>('|\"))(?P<url>.+?)(?P=sep)")
 
-_ignored_exts = frozenset(['.' + e for e in IGNORED_EXTENSIONS])
+_ignored_exts = frozenset(f'.{e}' for e in IGNORED_EXTENSIONS)
 
 # allowed protocols
 ALLOWED_SCHEMES = frozenset(['http', 'https', None, ''])
@@ -81,13 +82,13 @@ class BaseLinkExtractor(object):
             return
         # path normalization
         path = parsed.path or '/'
-        path = path if path[0] != '.' else '/' + path
+        path = path if path[0] != '.' else f'/{path}'
         path = posixpath.normpath(path)
         if parsed.path.endswith('/') and not path.endswith('/'):
             path += '/'
         if parsed.fragment.startswith('!'):
-            query = '_escaped_fragment_=%s' % parsed.fragment[1:]
-            query = parsed.query + '&' + query if parsed.query else query
+            query = f'_escaped_fragment_={parsed.fragment[1:]}'
+            query = f'{parsed.query}&{query}' if parsed.query else query
             parsed = parsed._replace(query=query)
         link.fragment = parsed.fragment
         if path != parsed.path or parsed.fragment:

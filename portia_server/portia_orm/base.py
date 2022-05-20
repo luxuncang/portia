@@ -35,7 +35,7 @@ class ModelOpts(object):
         if self.path is not None and not isinstance(self.path, str):
             raise ValueError("'path' option must be a string or None.")
         self.owner = getattr(meta, 'owner', False)
-        if self.owner is not False and not isinstance(self.owner, str):
+        if self.owner and not isinstance(self.owner, str):
             raise ValueError("'owner' option must be a string or False.")
         if self.owner and not isinstance(model._fields.get(self.owner),
                                          BaseRelationship):
@@ -51,7 +51,7 @@ class ModelOpts(object):
     def initialize_boolean(self, key, meta):
         value = getattr(meta, key, False)
         if not isinstance(value, bool):
-            raise ValueError("'{}' option must be a boolean".format(key))
+            raise ValueError(f"'{key}' option must be a boolean")
         setattr(self, key, value)
 
 
@@ -64,8 +64,7 @@ class ModelMeta(type):
 
         # check if a model with the same name exists in the registry
         if name in models:
-            raise ImproperlyConfigured(
-                u"A Model named '{}' already exists".format(name))
+            raise ImproperlyConfigured(f"A Model named '{name}' already exists")
 
         meta = attrs.pop('Meta', None)
         meta_bases = tuple(parent.Meta for parent in parents) + (object,)
@@ -89,24 +88,20 @@ class ModelMeta(type):
                     if value.primary_key:
                         if primary_key:
                             raise ImproperlyConfigured(
-                                u"Model '{}' declared with more than one primary "
-                                u"key".format(name))
+                                f"Model '{name}' declared with more than one primary key"
+                            )
+
                         primary_key = attrname
                     fields[attrname] = value
-                # move decorated marshmallow methods to the file schema
                 elif hasattr(value, '__marshmallow_tags__'):
                     file_schema_attrs[attrname] = value
                 else:
                     basic_attrs[attrname] = value
 
         if fields and not primary_key:
-            raise ImproperlyConfigured(
-                u"Model '{}' declared with no primary key".format(name))
+            raise ImproperlyConfigured(f"Model '{name}' declared with no primary key")
 
-        class_attrs = {}
-        class_attrs.update(fields)
-        class_attrs.update(file_schema_attrs)
-        class_attrs.update(basic_attrs)
+        class_attrs = fields | file_schema_attrs | basic_attrs
         cls = super(ModelMeta, mcs).__new__(mcs, name, bases, basic_attrs)
 
         cls._class_attrs = class_attrs
@@ -119,9 +114,10 @@ class ModelMeta(type):
         cls._relationship_names = sorted(k for k, f in fields.items()
                                          if isinstance(f, BaseRelationship))
         cls.opts = ModelOpts(meta, cls)
-        cls.collection = type(name + 'Collection', (ModelCollection,), {
-            'model': cls
-        })
+        cls.collection = type(
+            f'{name}Collection', (ModelCollection,), {'model': cls}
+        )
+
 
         for attrname, field in fields.items():
             if attrname in file_fields:
@@ -141,8 +137,10 @@ class ModelMeta(type):
         file_schema_attrs['Meta'] = type('Meta', (meta,), {
             'model': cls
         })
-        cls.file_schema = type(cls.__name__ + 'FileSerializer',
-                               (FileSerializer,), file_schema_attrs)
+        cls.file_schema = type(
+            f'{cls.__name__}FileSerializer', (FileSerializer,), file_schema_attrs
+        )
+
 
         # add new model to registry by name
         models[name] = cls
@@ -174,8 +172,9 @@ class Model(object, metaclass=ModelMeta):
             if (self._pk_field not in kwargs or
                     (kwargs[self._pk_field] is AUTO_PK and storage is None)):
                 raise TypeError(
-                    u"Model '{}' must be initialized with a value for the '{}' "
-                    u"field".format(self.__class__.__name__, self._pk_field))
+                    f"Model '{self.__class__.__name__}' must be initialized with a value for the '{self._pk_field}' field"
+                )
+
 
             pk = kwargs[self._pk_field]
             if pk is AUTO_PK:
@@ -190,8 +189,9 @@ class Model(object, metaclass=ModelMeta):
         for attrname in kwargs.keys():
             if attrname not in self._fields:
                 raise TypeError(
-                    u"'{}' is not a field of model '{}'".format(
-                        attrname, self.__class__.__name__))
+                    f"'{attrname}' is not a field of model '{self.__class__.__name__}'"
+                )
+
 
         errors = {}
         self._initializing = set(kwargs.keys())
@@ -247,9 +247,7 @@ class Model(object, metaclass=ModelMeta):
 
     def __setattr__(self, key, value):
         if key not in self._own_attributes and key not in self._fields:
-            raise TypeError(
-                u"'{}' is not a field of model '{}'".format(
-                    key, self.__class__.__name__))
+            raise TypeError(f"'{key}' is not a field of model '{self.__class__.__name__}'")
         super(Model, self).__setattr__(key, value)
 
     def with_snapshots(self, snapshots=None):
@@ -262,23 +260,23 @@ class Model(object, metaclass=ModelMeta):
 
     # share data between instances of the same model, to simplify relationships
     @class_property
-    def shared_data_store(cls):
+    def shared_data_store(self):
         return shared_data.data_store
 
     # keeps track of files that are loading
     @class_property
-    def loaded(cls):
+    def loaded(self):
         return shared_data.loaded
 
     @class_property
-    def _file_model(cls):
+    def _file_model(self):
         """Find the top-level model stored in this model's path."""
-        model = getattr(cls, '_cached_file_model', unspecified)
+        model = getattr(self, '_cached_file_model', unspecified)
         if model is not unspecified:
             return model
 
-        path = cls.opts.path
-        model = cls
+        path = self.opts.path
+        model = self
         while True:
             if model.opts.owner:
                 try:
@@ -290,7 +288,7 @@ class Model(object, metaclass=ModelMeta):
                         continue
                 except KeyError:
                     pass
-            cls._cached_file_model = model
+            self._cached_file_model = model
             return model
 
     @classmethod
@@ -329,8 +327,8 @@ class Model(object, metaclass=ModelMeta):
         if default is not unspecified:
             return default
         raise AttributeError(
-            u"'{}' object has no attribute '{}'".format(
-                self.__class__.__name__, key))
+            f"'{self.__class__.__name__}' object has no attribute '{key}'"
+        )
 
     def set_data(self, key, value):
         self.data_store.set(key, value, snapshot=self.snapshots[0])
@@ -339,7 +337,7 @@ class Model(object, metaclass=ModelMeta):
         try:
             index = ModelSnapshots.default_snapshots.index(state)
         except ValueError:
-            raise ValueError(u"'{}' is not a valid state".format(state))
+            raise ValueError(f"'{state}' is not a valid state")
 
         context = {
             'snapshots': ModelSnapshots.default_snapshots[index:]
@@ -404,26 +402,28 @@ class Model(object, metaclass=ModelMeta):
             path = model.storage_path(model, snapshots=('staged', 'committed'))
             old_path = model.storage_path(model,
                                           snapshots=('committed', 'staged'))
-            if dirty or old_path != path:
-                if path not in saved_paths and path not in deleted_paths:
-                    to_save = self._get_object_to_dump(
-                        model, parent_snapshots=('staged', 'committed'))
-                    model.storage.save(path, ContentFile(
-                        to_save.dumps(state='staged'), path))
-                    saved_paths.add(path)
-                if old_path != path and old_path not in deleted_paths:
-                    try:
-                        model.storage.delete(old_path)
-                    except IOError as ex:
-                        # Assume missing files are already deleted
-                        if ex.errno != errno.ENOENT:
-                            raise
-                    deleted_paths.add(old_path)
+            if (
+                (dirty or old_path != path)
+                and path not in saved_paths
+                and path not in deleted_paths
+            ):
+                to_save = self._get_object_to_dump(
+                    model, parent_snapshots=('staged', 'committed'))
+                model.storage.save(path, ContentFile(
+                    to_save.dumps(state='staged'), path))
+                saved_paths.add(path)
+            if old_path != path and old_path not in deleted_paths:
+                try:
+                    model.storage.delete(old_path)
+                except IOError as ex:
+                    # Assume missing files are already deleted
+                    if ex.errno != errno.ENOENT:
+                        raise
+                deleted_paths.add(old_path)
         for model in chain([self], (model for model, _
                                     in self._staged_model_references())):
             store = model.data_store
-            dirty = set(store['staged'].keys())
-            if dirty:
+            if dirty := set(store['staged'].keys()):
                 store.update_snapshot('committed', ('staged',), fields=dirty)
                 store.clear_snapshot('staged')
                 store.clear_snapshot('working', fields=dirty.intersection(
@@ -513,15 +513,14 @@ class Model(object, metaclass=ModelMeta):
                     model.storage.save(path, ContentFile(
                         to_save.dumps(state='staged'), path))
                     saved_paths.add(path)
-            else:
-                if path not in deleted_paths:
-                    try:
-                        model.storage.delete(path)
-                    except IOError as ex:
-                        # Assume missing files are already deleted
-                        if ex.errno != errno.ENOENT:
-                            raise
-                    deleted_paths.add(path)
+            elif path not in deleted_paths:
+                try:
+                    model.storage.delete(path)
+                except IOError as ex:
+                    # Assume missing files are already deleted
+                    if ex.errno != errno.ENOENT:
+                        raise
+                deleted_paths.add(path)
 
         for model, fields in collector.save.items():
             model._commit_changes(saved_paths, deleted_paths)
@@ -554,10 +553,7 @@ class Model(object, metaclass=ModelMeta):
         cls.loaded[storage].add(path)
 
         if not storage.exists(path):
-            if many:
-                return cls.collection()
-            return instance  # may be None
-
+            return cls.collection() if many else instance
         file_data = storage.open(path).read()
         if not cls.opts.raw:
             try:
@@ -630,10 +626,13 @@ class Model(object, metaclass=ModelMeta):
     def copy(self, new_id=None, storage=None):
         if new_id is None:
             new_id = short_guid()
-        field_names = {field: getattr(self, field)
-                       for field in self._field_names if field != 'id'}
-        field_names.update({
+        field_names = {
+            field: getattr(self, field)
+            for field in self._field_names
+            if field != 'id'
+        } | {
             'id': new_id,
             'storage': storage,
-        })
+        }
+
         return self.__class__(**field_names)

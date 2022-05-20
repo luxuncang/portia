@@ -117,14 +117,11 @@ class IblSpider(SitemapSpider):
                            callback=self.after_login, dont_filter=True)
 
     def after_login(self, response):
-        for result in self.parse(response):
-            yield result
-        for req in self._start_requests:
-            yield req
+        yield from self.parse(response)
+        yield from self._start_requests
 
     def get_generic_form_start_request(self, form_descriptor):
-        file_fields = list(self.generic_form.get_url_field(form_descriptor))
-        if file_fields:
+        if file_fields := list(self.generic_form.get_url_field(form_descriptor)):
             (field_index, field_descriptor) = file_fields.pop(0)
             form_descriptor['field_index'] = field_index
             return FormRequest(self.generic_form.get_value(field_descriptor),
@@ -153,12 +150,10 @@ class IblSpider(SitemapSpider):
                                   dont_filter=True)
         except Exception as e:
             self.logger.warning(str(e))
-        for req in self._start_requests:
-            yield req
+        yield from self._start_requests
 
     def after_form_page(self, response):
-        for result in self.parse(response):
-            yield result
+        yield from self.parse(response)
 
     def _get_allowed_domains(self, spec):
         urls = [x['url'] for x in spec['templates']]
@@ -175,8 +170,7 @@ class IblSpider(SitemapSpider):
             start_requests = self.form_requests
         else:
             start_requests = self._start_requests
-        for req in start_requests:
-            yield req
+        yield from start_requests
 
     def _create_start_request_from_specs(self, info):
         url = info["url"]
@@ -198,15 +192,13 @@ class IblSpider(SitemapSpider):
         request = response.request
         if (request and request.method == 'POST' and
                 urlparse(request.url).hostname == self.SPLASH_HOST):
-            url = json.loads(request.body.decode(request.encoding)).get('url')
-            if url:
+            if url := json.loads(request.body.decode(request.encoding)).get('url'):
                 response._url = url
         _type = content_type(response)
         if (isinstance(response, XmlResponse) or
                 response.url.endswith(('.xml', '.xml.gz')) or
                 'xml' in _type.subtype):
-            sitemap_body = self._get_sitemap_body(response)
-            if sitemap_body:
+            if sitemap_body := self._get_sitemap_body(response):
                 response._set_body(self._get_sitemap_body(response))
             return self.handle_xml(response)
         if isinstance(response, html_responses):
@@ -228,11 +220,11 @@ class IblSpider(SitemapSpider):
         return plugins
 
     def _plugin_hook(self, name, *args):
-        results = []
-        for plugin in self.plugins.values():
-            if hasattr(plugin, name):
-                results.append(getattr(plugin, name)(*args))
-        return results
+        return [
+            getattr(plugin, name)(*args)
+            for plugin in self.plugins.values()
+            if hasattr(plugin, name)
+        ]
 
     def _handle(self, hook, response, *extrasrgs):
         generators = self._plugin_hook(hook, response, *extrasrgs)
@@ -283,7 +275,7 @@ class IblSpider(SitemapSpider):
                                                          fragment='').geturl()
             request.meta['splash'] = {
                 'endpoint': 'execute',
-                'session_id': '{}-{}'.format(self.name, id(self)),
+                'session_id': f'{self.name}-{id(self)}',
                 'args': {
                     'wait': self.splash_wait,
                     'timeout': self.splash_timeout,
@@ -291,7 +283,8 @@ class IblSpider(SitemapSpider):
                     'lua_source': self.splash_lua_source,
                     'images': 0,
                     'url': request.url,
-                    'baseurl': cleaned_url
-                }
+                    'baseurl': cleaned_url,
+                },
             }
+
         return request

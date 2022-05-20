@@ -11,7 +11,5 @@ except ImportError:
     from PyQt4.QtNetwork import QNetworkRequest
 
 def to_py(obj):
-    if hasattr(obj, 'toPyObject'):
-        return obj.toPyObject()
-    return obj
+    return obj.toPyObject() if hasattr(obj, 'toPyObject') else obj
 

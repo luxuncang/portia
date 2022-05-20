@@ -35,10 +35,10 @@ class JsonApiRoute(ViewSet):
     renderer_classes = (JSONApiRenderer, JSONRenderer)
 
     def __str__(self):
-        return '{} {}'.format(self.method.upper(), self.path)
+        return f'{self.method.upper()} {self.path}'
 
     def __repr__(self):
-        return 'Route(%s)' % str(self)
+        return f'Route({str(self)})'
 
     @cached_property
     def method(self):
@@ -119,10 +119,7 @@ class JsonApiRoute(ViewSet):
                                              for f in getattr(obj, field_name)}
                         else:
                             value = getattr(obj, field_name)
-                            if isinstance(value, Sequence):
-                                filter_values = set(value)
-                            else:
-                                filter_values = {value}
+                            filter_values = set(value) if isinstance(value, Sequence) else {value}
                         if filter_values.intersection(field_values):
                             filtered.append(obj)
 
@@ -136,14 +133,12 @@ class JsonApiRoute(ViewSet):
     def get_serializer(self, instance=None, data=None, many=False, **kwargs):
         params = {}
         if self.method == 'get':
-            params.update({
-                'current_url': self.path,
-            })
+            params['current_url'] = self.path
         if many:
-            params.update(self.get_list_kwargs())
+            params |= self.get_list_kwargs()
         else:
             params.update(self.get_detail_kwargs())
-        params.update(self.get_request_kwargs())
+        params |= self.get_request_kwargs()
         params.update(kwargs)
 
         if self.polymorphic:

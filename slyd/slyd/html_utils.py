@@ -52,8 +52,7 @@ def html4annotation(htmlpage, baseurl=None, proxy_resources=None):
     This adds tags, removes scripts and optionally adds a base url
     """
     htmlpage = add_tagids(htmlpage)
-    cleaned_html = descriptify(htmlpage, baseurl, proxy=proxy_resources)
-    return cleaned_html
+    return descriptify(htmlpage, baseurl, proxy=proxy_resources)
 
 
 def descriptify(doc, base=None, proxy=None):
@@ -68,10 +67,10 @@ def descriptify(doc, base=None, proxy=None):
                 # Asumes there are no void elements in BLOCKED_TAGNAMES
                 # http://www.w3.org/TR/html5/syntax.html#void-elements
                 if not inserted_comment and element.tag_type in (HtmlTagType.OPEN_TAG, HtmlTagType.UNPAIRED_TAG):
-                    newdoc.append('<%s>' % element.tag)
+                    newdoc.append(f'<{element.tag}>')
                     inserted_comment = True
                 elif element.tag_type == HtmlTagType.CLOSE_TAG:
-                    newdoc.append('</%s>' % element.tag)
+                    newdoc.append(f'</{element.tag}>')
                     inserted_comment = False
             elif element.tag == 'base':
                 element.attributes = {}
@@ -85,16 +84,19 @@ def descriptify(doc, base=None, proxy=None):
                         element.attributes[key] = process_css(val, -1, base)
                     elif element.tag in ('frame', 'iframe') and key == 'src':
                         element.attributes[key] = '/static/frames-not-supported.html'
-                    # Rewrite javascript URIs
                     elif key in URI_ATTRIBUTES and val is not None:
-                            if _contains_js(unescape(val)):
-                                element.attributes[key] = "#"
-                            elif base and proxy and not (element.tag == "a" and key == 'href'):
-                                element.attributes[key] = wrap_url(val, -1,
-                                                                   base)
-                                element.attributes['_portia_%s' % key] = val
-                            elif base:
-                                element.attributes[key] = urljoin(base, val)
+                        if _contains_js(unescape(val)):
+                            element.attributes[key] = "#"
+                        elif (
+                            base
+                            and proxy
+                            and (element.tag != "a" or key != 'href')
+                        ):
+                            element.attributes[key] = wrap_url(val, -1,
+                                                               base)
+                            element.attributes[f'_portia_{key}'] = val
+                        elif base:
+                            element.attributes[key] = urljoin(base, val)
                 newdoc.append(serialize_tag(element))
         else:
             text = doc[element.start:element.end]

@@ -33,20 +33,19 @@ class ScrapydDeploy(BaseDeploy):
             setting = getattr(app_settings, setting, None)
             if setting is not None:
                 deploy_defaults[default] = setting
-        defaults = {
+        return {
             'deploy': deploy_defaults,
             'deploy:default': {
                 'project': self.project.name,
                 'version': self.project.version,
             },
         }
-        return defaults
 
     def deploy(self, target='default'):
         cfg = dict(self.config.items('deploy'))
-        cfg.update(self.config.items('deploy:default'))
-        if target and self.config.has_section('deploy:{}'.format(target)):
-            cfg.update(self.config.items('deploy:{}'.format(target)))
+        cfg |= self.config.items('deploy:default')
+        if target and self.config.has_section(f'deploy:{target}'):
+            cfg |= self.config.items(f'deploy:{target}')
         data = {
             'project': cfg['project'],
             'version': cfg['version'],
@@ -55,8 +54,7 @@ class ScrapydDeploy(BaseDeploy):
             'egg': ('project.egg', self.build_archive())
         }
         url = urljoin(cfg['url'], '/addversion.json')
-        user = cfg.get('username')
-        if user:
+        if user := cfg.get('username'):
             auth = (user, cfg.get('password', ''))
         else:
             auth = None

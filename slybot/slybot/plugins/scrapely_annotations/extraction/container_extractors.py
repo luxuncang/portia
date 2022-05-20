@@ -105,9 +105,12 @@ class BaseContainerExtractor(object):
         Group all annotations without a container.
         """
         # Get information about nested data
-        containers = dict((x.annotation.metadata['id'], x)
-                          for x in extractors
-                          if x.annotation.metadata.get('item_container'))
+        containers = {
+            x.annotation.metadata['id']: x
+            for x in extractors
+            if x.annotation.metadata.get('item_container')
+        }
+
         container_annos = defaultdict(list)
         non_container_annos = []
         for con_id, annotation in groupby(extractors, container_id):
@@ -157,11 +160,15 @@ class BaseContainerExtractor(object):
             if container_name not in containers:
                 continue  # Ignore missing containers
             container = container_annos[container_name]
-            annotation = None
-            for a in template.annotations:
-                if a.metadata.get('id') == container_name:
-                    annotation = a
-                    break
+            annotation = next(
+                (
+                    a
+                    for a in template.annotations
+                    if a.metadata.get('id') == container_name
+                ),
+                None,
+            )
+
             if container:
                 cls._add_new_container(
                     annotation, container_extractors, container_data,
@@ -210,19 +217,15 @@ class BaseContainerExtractor(object):
                                   htmlpage)
 
         # Check if item is valid
-        if len(processor):
-            return processor
-        else:
-            return {}
+        return processor if len(processor) else {}
 
     def __str__(self):
         stream = StringIO()
         pprint.pprint(self.extractors, stream)
         stream.seek(0)
-        template_data = stream.read()
-        if template_data:
+        if template_data := stream.read():
             return "%s[\n%s\n]" % (self.__class__.__name__, template_data)
-        return "%s[none]" % (self.__class__.__name__)
+        return f"{self.__class__.__name__}[none]"
 
 
 class ContainerExtractor(BaseContainerExtractor, BasicTypeExtractor):
@@ -233,10 +236,7 @@ class ContainerExtractor(BaseContainerExtractor, BasicTypeExtractor):
             containers = {}
         if container_contents is None:
             container_contents = {}
-        if annotation is not None:
-            aid = annotation.metadata.get('id')
-        else:
-            aid = None
+        aid = annotation.metadata.get('id') if annotation is not None else None
         self.template_tokens = template.page_tokens
         self.template_token_dict = template.token_dict
         self.extractors = self._build_extractors(
@@ -336,10 +336,7 @@ class RepeatedContainerExtractor(BaseContainerExtractor, RecordExtractor):
             container_contents = {}
         if schemas is None:
             schemas = {}
-        if annotation is not None:
-            aid = annotation.metadata.get('id')
-        else:
-            aid = None
+        aid = annotation.metadata.get('id') if annotation is not None else None
         self.template_tokens = template.page_tokens
         self.template_token_dict = template.token_dict
         self.prefix, self.suffix = self._find_prefix_suffix(
@@ -439,7 +436,7 @@ class RepeatedContainerExtractor(BaseContainerExtractor, RecordExtractor):
         parent, child = self._find_siblings(template, containers,
                                             container_contents)
         self.parent_annotation = parent
-        parent_sindex = 0 if not parent else parent.start_index
+        parent_sindex = parent.start_index if parent else 0
         tokens = template.page_tokens[parent_sindex:child.start_index + 1]
         prefix = self._find_tokens(tokens, open_tags, template)
         prefix.reverse()
@@ -461,7 +458,7 @@ class RepeatedContainerExtractor(BaseContainerExtractor, RecordExtractor):
         tokens = template.page_tokens[child.end_index + 1:
                                       child.end_index + max_separator][::-1]
         tokens = self._find_tokens(tokens, open_tags, template, prefix[0])
-        self.offset = 1 if not tokens else 0
+        self.offset = 0 if tokens else 1
         suffix = self._trim_prefix(suffix + tokens, prefix, template, 3, True)
         # Heuristic to reduce chance of false positives
         self.min_jump = child.metadata.get('min_jump', -1)
@@ -542,11 +539,7 @@ class RepeatedContainerExtractor(BaseContainerExtractor, RecordExtractor):
                         if (suffix_tokens == suffix).all():
                             return new_prefix
                 index += 1
-            if remove_from_end:
-                new_prefix = new_prefix[:-1]
-            else:
-                new_prefix = new_prefix[1:]
-
+            new_prefix = new_prefix[:-1] if remove_from_end else new_prefix[1:]
         return new_prefix
 
     @staticmethod

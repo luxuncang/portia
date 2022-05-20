@@ -20,6 +20,9 @@ class SlybotItem(DictItem):
     @classmethod
     def create_iblitem_class(cls, schema):
 
+
+
+
         class IblItem(cls, Item):
             ftm = FieldTypeManager()
             fields = defaultdict(dict)
@@ -27,13 +30,13 @@ class SlybotItem(DictItem):
             _display_name = schema.get('name')
             for _name, _meta in schema.get('fields', {}).items():
                 name = _meta.get('name', _name)
-                serializer = ftm.type_processor_serializer(_meta.get('type'))
-                if serializer:
+                if serializer := ftm.type_processor_serializer(_meta.get('type')):
                     _meta['serializer'] = serializer
                 fields[name] = Field(_meta)
                 if not _meta.get("vary", False):
                     version_fields.append(name)
             version_fields = sorted(version_fields)
+
         return IblItem
 
 
@@ -75,20 +78,19 @@ class SlybotFieldDescriptor(FieldDescriptor):
                               self.extractor, self.adapt)
 
     def __str__(self):
-        return "SlybotFieldDescriptor(%s, %s)" % (self.name,
-                                                  self._processor.name)
+        return f"SlybotFieldDescriptor({self.name}, {self._processor.name})"
 
 
 class SlybotItemDescriptor(ItemDescriptor):
     def __str__(self):
-        return "SlybotItemDescriptor(%s)" % self.name
+        return f"SlybotItemDescriptor({self.name})"
 
     def copy(self):
-        attribute_descriptors = []
-        for d in self.attribute_map.values():
-            attribute_descriptors.append(
-                SlybotFieldDescriptor(d.name, d.description, d.processor,
-                                      d.required))
+        attribute_descriptors = [
+            SlybotFieldDescriptor(d.name, d.description, d.processor, d.required)
+            for d in self.attribute_map.values()
+        ]
+
         return SlybotItemDescriptor(self.name, self.description,
                                     attribute_descriptors)
 

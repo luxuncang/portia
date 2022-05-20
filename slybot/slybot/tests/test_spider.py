@@ -19,20 +19,37 @@ _PATH = dirname(__file__)
 def splash_spider_manager(splash_url='http://localhost:8050'):
     settings = get_project_settings()
     settings.set('SPLASH_URL', splash_url)
-    yield SlybotSpiderManager("%s/data/SampleProject" % _PATH,
-                              settings=settings)
+    yield SlybotSpiderManager(f"{_PATH}/data/SampleProject", settings=settings)
 
 
 class SpiderTest(TestCase):
     smanager = SlybotSpiderManager("%s/data/SampleProject" % _PATH)
 
     def test_list(self):
-        self.assertEqual(set(self.smanager.list()), set([
-            "seedsofchange", "seedsofchange2", "seedsofchange.com", "sitemaps",
-            "pinterest.com", "ebay", "ebay2", "ebay3", "ebay4", "cargurus",
-            "networkhealth.com", "allowed_domains", "any_allowed_domains",
-            "example.com", "example2.com", "example3.com", "example4.com",
-            "books.toscrape.com", "books.toscrape.com_1"]))
+        self.assertEqual(
+            set(self.smanager.list()),
+            {
+                "seedsofchange",
+                "seedsofchange2",
+                "seedsofchange.com",
+                "sitemaps",
+                "pinterest.com",
+                "ebay",
+                "ebay2",
+                "ebay3",
+                "ebay4",
+                "cargurus",
+                "networkhealth.com",
+                "allowed_domains",
+                "any_allowed_domains",
+                "example.com",
+                "example2.com",
+                "example3.com",
+                "example4.com",
+                "books.toscrape.com",
+                "books.toscrape.com_1",
+            },
+        )
 
     def test_spider_with_link_template(self):
         name = "seedsofchange"
@@ -732,10 +749,14 @@ class SpiderTest(TestCase):
 
         urls = [r.url for r in spider.parse(response)]
         self.assertEqual(len(urls), 3)
-        self.assertEqual(set(urls), set([
-            "http://www.cargurus.com/Cars/2004-Alfa-Romeo-GT-Reviews-c10012",
-            "http://www.cargurus.com/Cars/2005-Alfa-Romeo-GT-Reviews-c10013",
-            "http://www.cargurus.com/Cars/2007-Alfa-Romeo-GT-Reviews-c10015"]))
+        self.assertEqual(
+            set(urls),
+            {
+                "http://www.cargurus.com/Cars/2004-Alfa-Romeo-GT-Reviews-c10012",
+                "http://www.cargurus.com/Cars/2005-Alfa-Romeo-GT-Reviews-c10013",
+                "http://www.cargurus.com/Cars/2007-Alfa-Romeo-GT-Reviews-c10015",
+            },
+        )
 
     def test_links_from_atom(self):
         body = open(join(_PATH, "data", "atom_sample.xml")).read()
@@ -748,10 +769,14 @@ class SpiderTest(TestCase):
 
         urls = [r.url for r in spider.parse(response)]
         self.assertEqual(len(urls), 3)
-        self.assertEqual(set(urls), set([
-            "http://www.webupd8.org/sitemap.xml?page=1",
-            "http://www.webupd8.org/sitemap.xml?page=2",
-            "http://www.webupd8.org/sitemap.xml?page=3"]))
+        self.assertEqual(
+            set(urls),
+            {
+                "http://www.webupd8.org/sitemap.xml?page=1",
+                "http://www.webupd8.org/sitemap.xml?page=2",
+                "http://www.webupd8.org/sitemap.xml?page=3",
+            },
+        )
 
     def test_links_from_sitemap(self):
         body = open(join(_PATH, "data", "sitemap_sample.xml")).read()
@@ -764,10 +789,14 @@ class SpiderTest(TestCase):
 
         urls = [r.url for r in spider.parse(response)]
         self.assertEqual(len(urls), 3)
-        self.assertEqual(set(urls), set([
-            "https://www.siliconrepublic.com/post-sitemap1.xml",
-            "https://www.siliconrepublic.com/post-sitemap2.xml",
-            "https://www.siliconrepublic.com/post-sitemap3.xml"]))
+        self.assertEqual(
+            set(urls),
+            {
+                "https://www.siliconrepublic.com/post-sitemap1.xml",
+                "https://www.siliconrepublic.com/post-sitemap2.xml",
+                "https://www.siliconrepublic.com/post-sitemap3.xml",
+            },
+        )
 
     def test_empty_content_type(self):
         name = "ebay4"
@@ -779,7 +808,7 @@ class SpiderTest(TestCase):
             body=body)
         response.request = generic_form_request
         # must not raise an error
-        for result in spider.parse(response):
+        for _ in spider.parse(response):
             pass
 
     def test_variants(self):

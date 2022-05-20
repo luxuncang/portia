@@ -53,7 +53,7 @@ class SchemaRoute(BaseProjectModelRoute):
         schema = self.get_instance()
         if item.schema.id == schema.id:
             return True
-        for item in item.annotations:
-            if hasattr(item, 'schema') and self._item_uses_schema(item):
-                return True
-        return False
+        return any(
+            hasattr(item, 'schema') and self._item_uses_schema(item)
+            for item in item.annotations
+        )

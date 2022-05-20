@@ -44,16 +44,16 @@ def insert_base_url(html, base):
         basetag = '<base href="%s" />' % base
         if headelement:
             insertpos = headelement.end
+        elif htmlelement:
+            basetag = "\n<head>%s</head>\n" % basetag
+            insertpos = htmlelement.end
         else:
-            if htmlelement:
-                basetag = "\n<head>%s</head>\n" % basetag
-                insertpos = htmlelement.end
-            else:
-                doctype_match = DOCTYPERE.search(html)
-                if doctype_match:
-                    insertpos = doctype_match.end()
-                else:
-                    insertpos = 0
+            insertpos = (
+                doctype_match.end()
+                if (doctype_match := DOCTYPERE.search(html))
+                else 0
+            )
+
         html = html[:insertpos] + basetag + html[insertpos:]
 
     return html
@@ -61,7 +61,11 @@ def insert_base_url(html, base):
 
 def get_base_url(htmlpage):
     """Return the base url of the given HtmlPage"""
-    for element in htmlpage.parsed_body:
-        if getattr(element, "tag", None) == "base":
-            return element.attributes.get("href") or htmlpage.url
-    return htmlpage.url
+    return next(
+        (
+            element.attributes.get("href") or htmlpage.url
+            for element in htmlpage.parsed_body
+            if getattr(element, "tag", None) == "base"
+        ),
+        htmlpage.url,
+    )

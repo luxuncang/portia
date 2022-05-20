@@ -34,7 +34,7 @@ def get_page(times, url):
 
     def error(error):
         errors.append(error)
-        retry = True if len(errors) < times else False
+        retry = len(errors) < times
         logging.warn('Failed to get %s %d times, %s', url, len(errors),
                      'retrying' if retry else 'stop')
         run() if retry else deferred.errback((url, errors))
@@ -43,9 +43,7 @@ def get_page(times, url):
 
 
 def _load_urls(urls):
-    deferreds = []
-    for url in urls:
-        deferreds.append(get_page(3, url.encode('utf-8')))
+    deferreds = [get_page(3, url.encode('utf-8')) for url in urls]
     return defer.DeferredList(deferreds)
 
 
@@ -58,10 +56,7 @@ class Pages(object):
     def __init__(self, urls, spider):
         if hasattr(urls, 'get'):
             urls = urls.get('urls', [])
-        if isinstance(urls, dict):
-            self.urls = urls.items()
-        else:
-            self.urls = urls
+        self.urls = urls.items() if isinstance(urls, dict) else urls
         self.spider = spider
 
     def fetch(self):
@@ -88,9 +83,11 @@ class Pages(object):
         for response in responses:
             page_key = response.meta.get('page_key') or response.url
             item = {'key': page_key, 'items': None, 'templates': None}
-            extracted_items = [dict(i) for i in self.spider.parse(response)
-                               if not isinstance(i, Request)]
-            if extracted_items:
+            if extracted_items := [
+                dict(i)
+                for i in self.spider.parse(response)
+                if not isinstance(i, Request)
+            ]:
                 item['items'] = extracted_items
                 item['templates'] = [i['_template'] for i in extracted_items
                                      if i.get('_template')]

@@ -37,7 +37,7 @@ class PersistentClusteringMiddleware(object):
     def spider_opened(self, spider):
         try:
             clustering = spider.plugins['Annotations'].clustering
-            assert bool(clustering) == True
+            assert bool(clustering)
             self.clustering_enabled = True
         except (KeyError, AttributeError, AssertionError):
             logging.warning('Persistent page clustering has not been enabled '

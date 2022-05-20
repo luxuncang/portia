@@ -56,8 +56,8 @@ class FieldDescriptor(object):
             return default
 
         raise AttributeError(
-            u"'{}' object has no attribute '{}'".format(
-                instance_type.__name__, self.attrname))
+            f"'{instance_type.__name__}' object has no attribute '{self.attrname}'"
+        )
 
     def __set__(self, instance, value):
         # validate the value against the field
@@ -79,9 +79,7 @@ class Field(fields.Field):
         setattr(cls, attrname, FieldDescriptor(attrname, self))
 
     def get_dependencies(self, cls):
-        if self.primary_key:
-            return set()
-        return {cls._pk_field}
+        return set() if self.primary_key else {cls._pk_field}
 
     def serialize(self, attr, obj, accessor=None):
         if self._CHECK_ATTRIBUTE:
@@ -247,7 +245,7 @@ class Fragment(ValidatedField, Field):
             all_letters = re.match(self.ALL_LETTERS, value['value'])
             all_numbers = re.match(self.ALL_NUMBERS, value['value'])
 
-            return value['type'] == 'range' and not (all_letters or all_numbers)
+            return value['type'] == 'range' and not all_letters and not all_numbers
 
         def __call__(self, value):
             if self.invalid_range(value):

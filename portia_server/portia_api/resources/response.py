@@ -31,8 +31,7 @@ class JsonApiResource(BaseApiResource):
         data = self.data
         if data is not None:
             content_type = b"application/vnd.api+json"
-            profiles = data.get('links', {}).get('profile', [])
-            if profiles:
+            if profiles := data.get('links', {}).get('profile', []):
                 content_type += b'; profile="{}"'.format(
                     b' '.join(map(bytes, profiles)))
             request.setHeader(b'content-type', content_type)

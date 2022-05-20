@@ -65,7 +65,7 @@ def extract(extractor, selector):
 
 _PATH = dirname(__file__)
 td = TokenDict()
-with open('%s/data/SampleProject/items.json' % _PATH) as f:
+with open(f'{_PATH}/data/SampleProject/items.json') as f:
     items = json.load(f)
 descriptors = {'#default': create_slybot_item_descriptor(items['default'],
                                                          'default')}
@@ -86,7 +86,7 @@ ibl_extractors = {}
 ibl_pages = {}
 selector_pages = {}
 for template_name in ('daft_ie', 'hn', 'patchofland'):
-    with open('%s/data/templates/%s.html' % (_PATH, template_name), 'rb') as f:
+    with open(f'{_PATH}/data/templates/{template_name}.html', 'rb') as f:
 
         html_page = HtmlPage(body=read(f))
         name = _names_map.get(template_name, template_name)
@@ -98,23 +98,23 @@ for template_name in ('daft_ie', 'hn', 'patchofland'):
 
 class TestExtractionSpeed(TestCase):
     def test_parsel_parse_and_extract(self):
-        for i in range(ITERATIONS):
+        for _ in range(ITERATIONS):
             for name, page in ibl_pages.items():
                 s = Selector(text=page.body)
                 extract(parsel_extractors[name], s)
 
     def test_slybot_parse_and_extract(self):
-        for i in range(ITERATIONS):
+        for _ in range(ITERATIONS):
             for name, page in ibl_pages.items():
                 extraction_page = HtmlPage(body=page.body)
                 ibl_extractors[name].extract(extraction_page)
 
     def test_parsel_extract(self):
-        for i in range(ITERATIONS):
+        for _ in range(ITERATIONS):
             for name, page in ibl_pages.items():
                 extract(parsel_extractors[name], selector_pages[name])
 
     def test_slybot_extract(self):
-        for i in range(ITERATIONS):
+        for _ in range(ITERATIONS):
             for name, page in ibl_pages.items():
                 ibl_extractors[name].extract(page)

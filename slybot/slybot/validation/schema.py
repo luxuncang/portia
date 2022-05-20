@@ -19,7 +19,7 @@ _PATH = dirname(__file__)
 
 def load_schemas():
     filename = join(_PATH, "schemas.json")
-    return dict((s["id"], s) for s in json.load(open(filename)))
+    return {s["id"]: s for s in json.load(open(filename))}
 
 _SCHEMAS = load_schemas()
 
@@ -49,11 +49,11 @@ def get_url_re():
     ipv6_re = r'\[[0-9a-f:\.]+\]' # Simple RE, validated later
 
     # Host patterns
-    hostname_re = r'[a-z' + ul + r'0-9](?:[a-z' + ul + r'0-9-]{0,61}[a-z' + ul + r'0-9])?'
+    hostname_re = f'[a-z{ul}0-9](?:[a-z{ul}' + r'0-9-]{0,61}[a-z' + ul + r'0-9])?'
     # Max length for domain name labels is 63 characters per RFC 1034 sec. 3.1
     domain_re = r'(?:\.(?!-)[a-z' + ul + r'0-9-]{1,63}(?<!-))*'
     tld_re = r'\.(?:[a-z' + ul + r']{2,63}|xn--[a-z0-9]{1,59})\.?'
-    host_re = '(' + hostname_re + domain_re + tld_re + '|localhost)'
+    host_re = f'({hostname_re}{domain_re}{tld_re}|localhost)'
 
     return re.compile(
         r'^(?:https?)://'  # Only http or https links allowed
@@ -84,9 +84,7 @@ def get_schema_validator(schema):
         if not URL_RE.match(url):
             return False
 
-        # Validate IPv6
-        ipv6_match = re.search(r'^\[(.+)\](?::\d{2,5})?$', netloc)
-        if ipv6_match:
+        if ipv6_match := re.search(r'^\[(.+)\](?::\d{2,5})?$', netloc):
             potential_ip = ipv6_match.groups()[0]
             if not is_valid_ipv6_address(potential_ip):
                 return False

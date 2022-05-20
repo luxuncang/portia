@@ -15,14 +15,12 @@ def get_model(model_name):
     try:
         return models[model_name]
     except KeyError:
-        raise ImproperlyConfigured(
-            u"No model named '{}' exists".format(model_name))
+        raise ImproperlyConfigured(f"No model named '{model_name}' exists")
 
 
 def get_polymorphic_model(data):
     for model in itervalues(models):
-        polymorphic = model.opts.polymorphic
-        if polymorphic:
+        if polymorphic := model.opts.polymorphic:
             polymorphic_key = polymorphic
             if isinstance(polymorphic_key, bool):
                 polymorphic_key = 'type'

@@ -11,7 +11,7 @@ from .utils import PATH
 class DropMetaTest(TestCase):
 
     def test_dupefilter(self):
-        smanager = SlybotSpiderManager("%s/data/SampleProject" % PATH)
+        smanager = SlybotSpiderManager(f"{PATH}/data/SampleProject")
         name = 'books.toscrape.com'
         spider = smanager.create(name)
         spec = smanager._specs["spiders"][name]

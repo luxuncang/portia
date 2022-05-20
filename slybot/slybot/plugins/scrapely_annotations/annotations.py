@@ -134,10 +134,8 @@ class Annotations(object):
             response.meta['n_items'] = len(items)
         except AttributeError:
             pass  # response not tied to any request
-        for item in items:
-            yield item
-        for request in self._process_link_regions(htmlpage, link_regions):
-            yield request
+        yield from items
+        yield from self._process_link_regions(htmlpage, link_regions)
 
     def extract_items(self, htmlpage, response=None):
         """This method is also called from UI webservice to extract items"""
@@ -234,10 +232,7 @@ class Annotations(object):
         if spec.get("links_to_follow") == "none":
             url_filterf = lambda x: False
         elif spec.get("links_to_follow") == "all":
-            if respect_nofollow:
-                url_filterf = lambda x: x.nofollow
-            else:
-                url_filterf = lambda x: True
+            url_filterf = (lambda x: x.nofollow) if respect_nofollow else (lambda x: True)
         else: # patterns
             patterns = spec.get('follow_patterns')
             excludes = spec.get('exclude_patterns')
@@ -265,14 +260,12 @@ class Annotations(object):
 
     def _filter_link(self, link, seen):
         url = link.url
-        if self.url_filterf(link):
-            # filter out duplicate urls, later we should handle link text
-            if url not in seen:
-                seen.add(url)
-                request = Request(url)
-                if link.text:
-                    request.meta['link_text'] = link.text
-                return request
+        if self.url_filterf(link) and url not in seen:
+            seen.add(url)
+            request = Request(url)
+            if link.text:
+                request.meta['link_text'] = link.text
+            return request
 
     def _process_link_regions(self, htmlpage, link_regions):
         """Process link regions if any, and generate requests"""
@@ -280,30 +273,25 @@ class Annotations(object):
             for link_region in link_regions:
                 htmlregion = HtmlPage(htmlpage.url, htmlpage.headers,
                                       link_region, encoding=htmlpage.encoding)
-                for request in self._requests_to_follow(htmlregion):
-                    yield request
+                yield from self._requests_to_follow(htmlregion)
         else:
-            for request in self._requests_to_follow(htmlpage):
-                yield request
+            yield from self._requests_to_follow(htmlpage)
 
     def _requests_to_follow(self, htmlpage):
-        if self._links_ibl_extractor is not None:
-            extracted = self._links_ibl_extractor.extract(htmlpage)[0]
-            if extracted:
-                extracted_regions = extracted[0].get('_links', [])
-                seen = set()
-                for region in extracted_regions:
-                    htmlregion = HtmlPage(htmlpage.url, htmlpage.headers,
-                                          region, encoding=htmlpage.encoding)
-                    for request in self._request_to_follow_from_region(
-                            htmlregion):
-                        if request.url in seen:
-                            continue
-                        seen.add(request.url)
-                        yield request
-        else:
-            for request in self._request_to_follow_from_region(htmlpage):
-                yield request
+        if self._links_ibl_extractor is None:
+            yield from self._request_to_follow_from_region(htmlpage)
+        elif extracted := self._links_ibl_extractor.extract(htmlpage)[0]:
+            extracted_regions = extracted[0].get('_links', [])
+            seen = set()
+            for region in extracted_regions:
+                htmlregion = HtmlPage(htmlpage.url, htmlpage.headers,
+                                      region, encoding=htmlpage.encoding)
+                for request in self._request_to_follow_from_region(
+                        htmlregion):
+                    if request.url in seen:
+                        continue
+                    seen.add(request.url)
+                    yield request
 
     def _request_to_follow_from_region(self, htmlregion):
         seen = set()
@@ -321,6 +309,5 @@ class Annotations(object):
         except ValueError:
             link_extractor = XmlLinkExtractor()
         for link in link_extractor.links_to_follow(response):
-            request = self._filter_link(link, seen)
-            if request:
+            if request := self._filter_link(link, seen):
                 yield request

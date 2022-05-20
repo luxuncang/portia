@@ -16,7 +16,7 @@ class SlydSchema(Schema):
     def __init__(self, *args, **kwargs):
         self._skip_relationships = kwargs.pop('skip_relationships', False)
         if self._skip_relationships:
-            relationships = ((f, '%s_id' % f) for f in self._properties)
+            relationships = ((f, f'{f}_id') for f in self._properties)
             exclude = kwargs.get('exclude', [])
             excluded = tuple(chain(exclude, *zip(*relationships)))
             kwargs['exclude'] = excluded
@@ -165,8 +165,7 @@ class SpiderSchema(SlydSchema):
 
     @pre_dump
     def _dump_login_data(self, item):
-        init_requests = item.pop('init_requests', None)
-        if init_requests:
+        if init_requests := item.pop('init_requests', None):
             login_request = init_requests[0]
             item['login_url'] = login_request['loginurl']
             item['login_user'] = login_request['username']
@@ -281,9 +280,7 @@ class BaseAnnotationSchema(SlydSchema):
 
     @pre_dump
     def _dump_parent_id(self, item):
-        parent_id = None
-        if 'parent' in item:
-            parent_id = item['parent']['id']
+        parent_id = item['parent']['id'] if 'parent' in item else None
         if not parent_id:
             parent_id = item.get('container_id', self.parent_id) or ''
         if (item['id'].split('#')[0] == parent_id or

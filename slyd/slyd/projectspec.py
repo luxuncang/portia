@@ -122,7 +122,7 @@ class ProjectSpec(object):
         self.savejson(spider, ['spiders', spider_name])
 
     def _rfilename(self, *resources):
-        return join(self.project_dir, *resources) + '.json'
+        return f'{join(self.project_dir, *resources)}.json'
 
     def _rdirname(self, *resources):
         return join(self.project_dir, *resources[:-1])
@@ -154,10 +154,10 @@ class ProjectSpec(object):
             self.storage.commit()
 
     def __repr__(self):
-        return '%s(%s)' % (self.__class__.__name__, str(self))
+        return f'{self.__class__.__name__}({str(self)})'
 
     def __str__(self):
-        return '%s, %s' % (self.project_name, self.user)
+        return f'{self.project_name}, {self.user}'
 
 
 class FileSystemProjectSpec(ProjectSpec):

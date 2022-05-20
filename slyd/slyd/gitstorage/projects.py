@@ -73,12 +73,12 @@ class GitProjectMixin(object):
                 commit = repo._repo.get_object(commit_id)
             elif branch:
                 branch_name = branch
-                commit_id = repo.refs['refs/heads/%s' % branch_name]
+                commit_id = repo.refs[f'refs/heads/{branch_name}']
                 commit = repo._repo.get_object(commit_id)
         except (ValueError, ObjectMissing) as e:
             raise BadRequest(str(e))
         except KeyError as e:
-            raise BadRequest('Could not find ref: %s' % e)
+            raise BadRequest(f'Could not find ref: {e}')
         self.storage = self.storage_class(repo, branch_name, commit=commit)
 
     def _get_branch(self, repo=None, read_only=False, name=None):
@@ -162,7 +162,7 @@ class GitProjectsManager(GitProjectMixin, ProjectsManager):
 
     def _has_tag(self, name, tag_name):
         repo = self._open_repo(name)
-        if ('refs/tags/%s' % tag_name) in repo._repo.refs:
+        if f'refs/tags/{tag_name}' in repo._repo.refs:
             return True
         return False
 
@@ -232,7 +232,7 @@ class GitProjectsManager(GitProjectMixin, ProjectsManager):
         args = request_data.get('args')
         last_commit = self.storage._commit.id
         spiders = args[1] if len(args) > 1 and args[1] else []
-        return (last_commit + '.' + '.'.join(spiders)).encode('utf-8')
+        return (f'{last_commit}.' + '.'.join(spiders)).encode('utf-8')
 
     def _schedule_info(self, **kwargs):
         return {}

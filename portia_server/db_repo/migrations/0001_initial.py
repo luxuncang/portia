@@ -6,6 +6,8 @@ import db_repo.models
 from django.db import migrations, models
 
 
+
+
 class Migration(migrations.Migration):
 
     initial = True
@@ -17,11 +19,31 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Objs',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('oid', db_repo.models.RealBinaryField(default='\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00', max_length=40)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID',
+                    ),
+                ),
+                (
+                    'oid',
+                    db_repo.models.RealBinaryField(
+                        default='\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+                        max_length=40,
+                    ),
+                ),
                 ('repo', models.CharField(max_length=64)),
-                ('type', db_repo.models.PositiveTinyIntegerField(db_index=True)),
-                ('size', db_repo.models.PositiveBigIntegerField(db_index=True)),
+                (
+                    'type',
+                    db_repo.models.PositiveTinyIntegerField(db_index=True),
+                ),
+                (
+                    'size',
+                    db_repo.models.PositiveBigIntegerField(db_index=True),
+                ),
                 ('data', db_repo.models.CompressedBinaryField()),
             ],
             options={
@@ -31,21 +53,32 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Refs',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID',
+                    ),
+                ),
                 ('ref', models.CharField(default='', max_length=100)),
                 ('repo', models.CharField(max_length=64)),
-                ('value', db_repo.models.RealBinaryField(db_index=True, max_length=40)),
+                (
+                    'value',
+                    db_repo.models.RealBinaryField(
+                        db_index=True, max_length=40
+                    ),
+                ),
             ],
             options={
                 'db_table': 'refs',
             },
         ),
         migrations.AlterUniqueTogether(
-            name='refs',
-            unique_together=set([('ref', 'repo')]),
+            name='refs', unique_together={('ref', 'repo')}
         ),
         migrations.AlterUniqueTogether(
-            name='objs',
-            unique_together=set([('oid', 'repo')]),
+            name='objs', unique_together={('oid', 'repo')}
         ),
     ]

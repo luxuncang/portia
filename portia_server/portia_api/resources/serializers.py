@@ -300,8 +300,9 @@ class ItemSerializer(JsonApiSerializer):
         items = sample.items
         if len(items) == 1 and items[0] == instance:
             raise ProtectedError(
-                u"Cannot delete item {} because it is the only item in the "
-                u"sample {}".format(instance, sample))
+                f"Cannot delete item {instance} because it is the only item in the sample {sample}"
+            )
+
         super(ItemSerializer, self).delete()
 
 

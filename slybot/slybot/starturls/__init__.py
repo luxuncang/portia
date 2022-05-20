@@ -19,8 +19,7 @@ class StartUrlCollection(object):
 
     def __iter__(self):
         generated = (self._generate_urls(url) for url in self.start_urls)
-        for url in chain(*(arg_to_iter(g) for g in generated)):
-            yield url
+        yield from chain(*(arg_to_iter(g) for g in generated))
 
     def uniq(self):
         return list(ODict([(s.key, s.spec) for s in self.start_urls]).values())
@@ -72,12 +71,12 @@ class StartUrl(object):
         generator = self.generators[self.generator_type]
         fragment_lists = list(generator.process_fragments(self.spec))
 
-        while len(fragment_lists) > 0:
+        while fragment_lists:
             fragment_list = fragment_lists.pop(0)
 
             if all(self._has_domain(fragment) for fragment in fragment_list):
                 return fragment_list
-            if len(fragment_lists) == 0:
+            if not fragment_lists:
                 return []
 
             augmented_first_fragments = product(fragment_list, fragment_lists[0])

@@ -26,7 +26,7 @@ class FragmentGenerator(object):
             return (str(i) for i in six.moves.range(a, b + 1))
 
     def _process_fragment(self, fragment):
-        processor = getattr(self, '_process_{}'.format(fragment['type']))
+        processor = getattr(self, f"_process_{fragment['type']}")
         return processor(fragment['value'])
 
     def process_fragments(self, spec):

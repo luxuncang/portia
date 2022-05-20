@@ -57,11 +57,9 @@ class Commands(object):
         self.socket.spiderspec.project = project
         spider = project.spiders[data['spider']]
         samples = spider.samples
-        try:
+        with contextlib.suppress(IOError, KeyError):
             sample = samples[data['sample']]
             self._update_sample(sample)
-        except (IOError, KeyError):
-            pass  # Sample doesn't exist or may not exist yet
         return {'ok': True}
 
     def extract_items(self):
@@ -158,7 +156,7 @@ class Commands(object):
         self._open_tab()
         event = json.dumps(self.data.get('interaction', {}))
         try:
-            self.tab.evaljs('window.livePortiaPage.sendEvent(%s);' % event)
+            self.tab.evaljs(f'window.livePortiaPage.sendEvent({event});')
         except JsError as e:
             print(e)
         self.cookies()
@@ -190,8 +188,8 @@ class Commands(object):
             res.update(
                 url=url, fp=hashlib.sha1(url.encode('utf8')).hexdigest(),
                 response=response)
-            res.update(self.extract())
-        res.update(extra)
+            res |= self.extract()
+        res |= extra
         return res
 
     def extract(self):
@@ -215,10 +213,8 @@ class Commands(object):
 
     def resize(self):
         """Resize virtual tab viewport to match user's viewport"""
-        try:
+        with contextlib.suppress(KeyError, AttributeError):
             self.tab.set_viewport(_get_viewport(self.data['size']))
-        except (KeyError, AttributeError):
-            pass  # Tab isn't open. The size will be set when opened
 
     def close_tab(self):
         """Close virtual tab if it is open"""
@@ -235,12 +231,14 @@ class Commands(object):
 def _process_items(items):
     for i, item in enumerate(items):
         if isinstance(item, dict):
-            new = {}
-            for key, value in item.items():
-                if key and key.startswith('_'):
-                    continue
-                new[key] = _process_items(value) if isinstance(value, list) \
-                    else value
+            new = {
+                key: _process_items(value)
+                if isinstance(value, list)
+                else value
+                for key, value in item.items()
+                if not key or not key.startswith('_')
+            }
+
             items[i] = new
         elif isinstance(item, list):
             items[i] = _process_items(item)
@@ -264,15 +262,14 @@ def _compare_items(a, b):
         if aitem == bitem:
             continue
         afields, bfields = set(aitem.keys()), set(bitem.keys())
-        b_not_a = bfields ^ afields
-        if b_not_a:
+        if b_not_a := bfields ^ afields:
             change.add('missing_fields')
-            item_changes.update({k: None for k in b_not_a})
+            item_changes |= {k: None for k in b_not_a}
         for field in afields:
             afield, bfield = aitem.get(field), bitem.get(field)
             if afield == bfield:
                 continue
-            item_changes.update({field: (afield, bfield)})
+            item_changes[field] = (afield, bfield)
         changes.append(item_changes)
     return list(change), changes
 
@@ -285,12 +282,10 @@ class ItemChecker(object):
             project = Project(command.storage, id=project, name=project_name)
         self.project = project
         if not self.socket.spider:
-            try:
+            with contextlib.suppress(KeyError):
                 self.socket.open_spider(
                     {'project': self.project.id, 'spider': spider},
                     project=project)
-            except KeyError:
-                pass  # Ignore extraction as it is not fully set up yet
         self.spider = spider
         self.sample = sample
         if (self.spider and (not self.socket.spider or
@@ -378,8 +373,7 @@ class ItemChecker(object):
             data = [e.schema.id, list(e.fields)]
             return [], ['missing_required_field'], data, []
         raw_links = {l: 'raw' for l in links}
-        links = {l: 'js' for l in js_links}
-        links.update(raw_links)
+        links = {l: 'js' for l in js_links} | raw_links
         # Decide which items to use
         if self.using_js:
             changes, changed_values = _compare_items(js_live_items, raw_items)
@@ -389,7 +383,7 @@ class ItemChecker(object):
         else:
             changes, changed_values = _compare_items(raw_items, js_raw_items)
             changes.extend(_compare_items(live_items, js_live_items)[0])
-            items = raw_items if raw_items else live_items
+            items = raw_items or live_items
         items = _process_items(items)
         return items, changes, changed_values, links
 
@@ -405,8 +399,7 @@ class ItemChecker(object):
                     annotated.add(annotation.field.id)
                 else:
                     _check_item(annotation)
-            missing = required - annotated
-            if missing:
+            if missing := required - annotated:
                 raise MissingRequiredError(schema, missing)
         for item in sample.items:
             _check_item(item)

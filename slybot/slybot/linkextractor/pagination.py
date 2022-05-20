@@ -10,8 +10,7 @@ class PaginationExtractor(HtmlLinkExtractor):
         self.link_annotation = LinkAnnotation()
         self.visited = set()
         self.url_to_link = {}
-        start_urls = specs.get('start_urls')
-        if start_urls:
+        if start_urls := specs.get('start_urls'):
             self.link_annotation.load(start_urls)
             for url in start_urls:
                 self.url_to_link[url] = Link(url)
@@ -33,8 +32,7 @@ class PaginationExtractor(HtmlLinkExtractor):
         if n_items is not None:
             self.link_annotation.mark_link(
                 response_or_htmlpage.url, follow=(n_items > 0))
-        best = self.link_annotation.best_links_to_follow()
-        if best:
+        if best := self.link_annotation.best_links_to_follow():
             pages = []
             for url in best:
                 if url not in self.visited:

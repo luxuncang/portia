@@ -26,8 +26,8 @@ class ModelSnapshots(defaultdict):
                 return value
             except KeyError:
                 raise AttributeError(
-                    u"'{}' object has no attribute '{}'".format(
-                        self.__class__.__name__, name))
+                    f"'{self.__class__.__name__}' object has no attribute '{name}'"
+                )
 
         def __setattr__(self, name, value):
             if name in self.__slots__:

@@ -13,21 +13,20 @@ class Request(WebRequest):
         return 'XMLHttpRequest' in req_with
 
     def processingFailed(self, reason):
-        if self.is_ajax():
-            log.err(reason)
-            if self.site.displayTracebacks:
-                body = reason.getTraceback()
-            else:
-                body = b"Processing Failed"
+        if not self.is_ajax():
+            return WebRequest.processingFailed(self, reason)
+        log.err(reason)
+        if self.site.displayTracebacks:
+            body = reason.getTraceback()
+        else:
+            body = b"Processing Failed"
 
-            self.setResponseCode(http.INTERNAL_SERVER_ERROR)
-            self.setHeader(b'content-type', b"text/plain")
-            self.setHeader(b'content-length', intToBytes(len(body)))
-            self.write(body)
-            self.finish()
-            return reason
-
-        return WebRequest.processingFailed(self, reason)
+        self.setResponseCode(http.INTERNAL_SERVER_ERROR)
+        self.setHeader(b'content-type', b"text/plain")
+        self.setHeader(b'content-length', intToBytes(len(body)))
+        self.write(body)
+        self.finish()
+        return reason
 
 
 class Site(WebSite):
@@ -43,9 +42,10 @@ def debugLogFormatter(timestamp, request):
     """
     referrer = _escape(request.getHeader(b"referer") or b"-")
     agent = _escape(request.getHeader(b"user-agent") or b"-")
-    line = (
+    return (
         u'"%(ip)s" - - %(timestamp)s "%(method)s %(uri)s %(protocol)s" '
-        u'%(code)d %(length)s "%(referrer)s" "%(agent)s"' % dict(
+        u'%(code)d %(length)s "%(referrer)s" "%(agent)s"'
+        % dict(
             ip=_escape(request.getClientIP() or b"-"),
             timestamp=timestamp,
             method=_escape(request.method),
@@ -57,4 +57,3 @@ def debugLogFormatter(timestamp, request):
             agent=agent,
         )
     )
-    return line

@@ -107,7 +107,7 @@ class Repoman(object):
         commit in master.
         """
         at_revision = at_revision or self._get_head()
-        self.refs['refs/heads/%s' % branch_name] = at_revision
+        self.refs[f'refs/heads/{branch_name}'] = at_revision
 
     def delete_branch(self, branch_name):
         """Delete an existing branch.
@@ -115,15 +115,15 @@ class Repoman(object):
         Only the reference to the branch is deleted, all commits trees and
         blobs are left untouched.
         """
-        del self.refs['refs/heads/%s' % branch_name]
+        del self.refs[f'refs/heads/{branch_name}']
 
     def has_branch(self, branch_name):
         """Return true if the specified branch exists in this repo."""
-        return 'refs/heads/%s' % branch_name in self.refs
+        return f'refs/heads/{branch_name}' in self.refs
 
     def get_branch(self, branch_name):
         """Return the branch with name branch_name."""
-        return self.refs['refs/heads/%s' % branch_name]
+        return self.refs[f'refs/heads/{branch_name}']
 
     def save_file(self, file_path, contents, branch_name, commit_message=None):
         """Save a file into the repo and advances the specified branch head.
@@ -200,10 +200,7 @@ class Repoman(object):
         """
         conflicts = self._publish_branch(branch_name, force, message)
         if dry_run:
-            if conflicts:
-                return conflicts
-            return True
-
+            return conflicts or True
         if conflicts:
             self.advance_branch(self.commit, branch=branch_name)
             return False
@@ -290,23 +287,23 @@ class Repoman(object):
         commit = self._repo['refs/heads/master']
         tag = Tag()
         tag.name = tag_name
-        tag.message = 'Tagged %s as %s' % (commit.id, tag_name)
+        tag.message = f'Tagged {commit.id} as {tag_name}'
         tag.tagger = self._author
         tag.object = (Commit, commit.id)
         tag.tag_time = int(time())
         tag.tag_timezone = self._time_zone
         self._update_store(tag)
-        self.refs['refs/tags/%s' % tag_name] = tag.id
+        self.refs[f'refs/tags/{tag_name}'] = tag.id
 
     def checkout_tag(self, tag_name, remove=False):
-        if ('refs/tags/%s' % tag_name) not in self.refs:
-            raise ValueError('No tag "{}" found'.format(tag_name))
-        tag_ref = self.refs['refs/tags/%s' % tag_name]
+        if f'refs/tags/{tag_name}' not in self.refs:
+            raise ValueError(f'No tag "{tag_name}" found')
+        tag_ref = self.refs[f'refs/tags/{tag_name}']
         tag = self._repo[tag_ref]
         self._advance_branch(
             'master', self._repo.object_store.get_object(tag.object[1]))
         if remove:
-            del self.refs['refs/tags/%s' % tag_name]
+            del self.refs[f'refs/tags/{tag_name}']
 
     def _merge_branches(self, base, mine, other, take_mine=False):
 
@@ -412,7 +409,7 @@ class Repoman(object):
         self._advance_branch(branch_name, commit)
 
     def _save_file(self, parent_commit, file_path, contents, commit_message):
-        commit_message = commit_message or 'Saving %s' % file_path
+        commit_message = commit_message or f'Saving {file_path}'
         return self._save_files(
             parent_commit, {file_path: (contents, CHANGE_MODIFY)},
             commit_message)
@@ -442,7 +439,7 @@ class Repoman(object):
         self._repo.object_store.add_objects(objects)
 
     def _advance_branch(self, branch_name, commit):
-        self.refs['refs/heads/%s' % branch_name] = commit.id
+        self.refs[f'refs/heads/{branch_name}'] = commit.id
 
     def _get_tree(self, revision):
         repo = self._repo

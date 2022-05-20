@@ -24,9 +24,7 @@ class XmlLinkExtractor(BaseLinkExtractor):
 
     def _extract_links(self, response):
         body = response.body_as_unicode()
-        _type = 'html'
-        if body.lstrip().startswith('<?xml version='):
-            _type = 'xml'
+        _type = 'xml' if body.lstrip().startswith('<?xml version=') else 'html'
         xxs = Selector(text=body, type=_type)
         if self.remove_namespaces:
             xxs.remove_namespaces()

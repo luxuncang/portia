@@ -157,7 +157,7 @@ class Test_XmlLinkExtractors(TestCase):
 
 class TestXmlLinkExtractionFromSpider(TestCase):
     def setUp(self):
-        smanager = SlybotSpiderManager("%s/data/SampleProject" % PATH)
+        smanager = SlybotSpiderManager(f"{PATH}/data/SampleProject")
         self.spider = smanager.create('books.toscrape.com_1')
 
     def test_xml_content(self):
@@ -251,7 +251,7 @@ html = """
 <a href="http://www.example.com/path">Click here</a>
 """
 _PATH = dirname(__file__)
-with open('%s/data/templates/daft_list.json' % _PATH) as f:
+with open(f'{_PATH}/data/templates/daft_list.json') as f:
     daft_sample = json.load(f)
     daft_body = Annotations(daft_sample).apply()
     daft_sample['annotated_body'] = daft_body

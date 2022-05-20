@@ -39,17 +39,17 @@ def list_spiderlets(spiderlets_module_path):
             if cls in seen_classes:
                 continue
             seen_classes.add(cls)
-            name = getattr(cls, 'name', None)
-            if name:
+            if name := getattr(cls, 'name', None):
                 yield cls
 
 
 def _load_spiderlet(spiderlets_module_path, spider):
     for cls in list_spiderlets(spiderlets_module_path):
         if cls.name == spider.name:
+
             class _spiderlet_cls(cls, DefaultSpiderlet):
                 pass
-            spider.log("SpiderletMiddleware: loaded %s" % _spiderlet_cls.name)
+            spider.log(f"SpiderletMiddleware: loaded {_spiderlet_cls.name}")
             return _spiderlet_cls(spider)
     return DefaultSpiderlet(spider)
 

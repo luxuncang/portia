@@ -28,7 +28,7 @@ class JSONApiRenderer(JSONRenderer):
         except (TypeError, KeyError):
             profiles = []
         if profiles:
-            content_type += '; profile="{}"'.format(' '.join(profiles))
+            content_type += f"""; profile="{' '.join(profiles)}\""""
         response['Content-Type'] = content_type
 
         return ret

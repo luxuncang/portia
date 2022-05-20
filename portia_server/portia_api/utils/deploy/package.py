@@ -40,12 +40,15 @@ class EggInfo(object):
         return '\n'.join(sorted(f.filename for f in self.archive.filelist))
 
     def build_top_level(self):
-        return '\n'.join(sorted({
-            fn.split('/', 1)[0] for fn in (
-                fn for fn in (
-                    f.filename for f in self.archive.filelist))
-            if fn.endswith('.py')
-        }))
+        return '\n'.join(
+            sorted(
+                {
+                    fn.split('/', 1)[0]
+                    for fn in iter((f.filename for f in self.archive.filelist))
+                    if fn.endswith('.py')
+                }
+            )
+        )
 
     def build_dependency(self):
         return '\n'

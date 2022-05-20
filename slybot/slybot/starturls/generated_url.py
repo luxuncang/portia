@@ -72,17 +72,14 @@ class GeneratedUrl(object):
     @property
     def _query_params(self):
         params = self.spec['params']
-        template_params = self.spec['params_template']
-
-        query_params = []
         param_names = {p['name'] for p in params}
-        for query, value in template_params:
-            if query not in param_names:
-                query_params.append({
-                    'name': query,
-                    'type': 'default',
-                    'values': [value]
-                })
+        template_params = self.spec['params_template']
+        query_params = [
+            {'name': query, 'type': 'default', 'values': [value]}
+            for query, value in template_params
+            if query not in param_names
+        ]
+
         return query_params + params
 
 
@@ -136,9 +133,8 @@ def normalize_default(x):
 
 
 def normalize_range(x):
-    a, b = x['values'][0:2]
-    b_inclusive = str(int(b) - 1)
-    return '{}-{}'.format(a, b_inclusive)
+    a, b = x['values'][:2]
+    return f'{a}-{str(int(b) - 1)}'
 
 
 def query_params_prefix(is_first):

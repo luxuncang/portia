@@ -67,5 +67,4 @@ def jsonapi_exception_handler(exc, context):
             exc.detail = render_exception(exc.status_code, exc.detail)
         except AttributeError:
             pass  # Ignore django exceptions
-    response = exception_handler(exc, context)
-    return response
+    return exception_handler(exc, context)

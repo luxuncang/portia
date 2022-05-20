@@ -88,14 +88,12 @@ class AttributeDict(dict):
             return self[name]
         except KeyError:
             raise AttributeError(
-                u"'{}' object has no attribute '{}'".format(
-                    self.__class__.__name__, name))
+                f"'{self.__class__.__name__}' object has no attribute '{name}'"
+            )
 
 
 def strip_json(fname):
-    if fname.endswith('.json'):
-        return fname[:-JSON_LEN]
-    return fname
+    return fname[:-JSON_LEN] if fname.endswith('.json') else fname
 
 
 class OrderedIndexedTransformDict(object):

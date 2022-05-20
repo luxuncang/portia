@@ -27,8 +27,7 @@ class FieldRoute(BaseProjectModelRoute):
     def _destroy_error(self, annotation_count):
         field = self.get_instance()
         annotation = 'annotation' if annotation_count == 1 else 'annotations'
-        return ('Unable to delete the field "{}" as it has {} {}.'
-                .format(field.name, annotation_count, annotation))
+        return f'Unable to delete the field "{field.name}" as it has {annotation_count} {annotation}.'
 
     @property
     def _annotation_count(self):

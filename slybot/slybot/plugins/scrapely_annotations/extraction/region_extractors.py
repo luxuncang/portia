@@ -24,9 +24,11 @@ class BaseExtractor(BasicTypeExtractor):
                     start, end).extract
 
         if annotation.tag_attributes:
-            self.tag_data = []
-            for (tag_attr, extraction_attr) in annotation.tag_attributes:
-                self.tag_data.append((lambda x: x, tag_attr, extraction_attr))
+            self.tag_data = [
+                (lambda x: x, tag_attr, extraction_attr)
+                for (tag_attr, extraction_attr) in annotation.tag_attributes
+            ]
+
             self.extract = self._extract_both if \
                 annotation.surrounds_attribute else self._extract_attribute
 
@@ -35,9 +37,12 @@ class BaseExtractor(BasicTypeExtractor):
         return cls(annotation, attribute_descriptors)
 
     def __str__(self):
-        messages = [self.__class__.__name__, '(']
         annotation = self.annotation
-        messages.append(self.annotation.surrounds_attribute or '')
+        messages = [
+            self.__class__.__name__,
+            '(',
+            self.annotation.surrounds_attribute or '',
+        ]
 
         if annotation.tag_attributes:
             if annotation.surrounds_attribute:
@@ -45,7 +50,7 @@ class BaseExtractor(BasicTypeExtractor):
             for (f, ta, ea) in self.tag_data:
                 messages += [ea, ': attribute "', ta, '"']
         start, end = annotation.start_index, annotation.end_index
-        messages.append(', template[%s:%s])' % (start, end))
+        messages.append(f', template[{start}:{end}])')
         return ''.join(map(str, messages))
 
 
@@ -119,8 +124,7 @@ class SlybotRecordExtractor(RecordExtractor):
                 extracted_data = first_extractor.extract(
                     page, pindex, sindex, similar_ignored_regions, **kwargs)
             if following_extractors:
-                previous_extraction = start_region or sindex
-                if previous_extraction:
+                if previous_extraction := start_region or sindex:
                     kwargs['previous'] = previous_extraction + 1
                 _, _, following_data = self._doextract(
                     page, following_extractors, sindex or start_region,

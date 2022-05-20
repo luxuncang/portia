@@ -22,8 +22,7 @@ def create_regex_extractor(pattern):
     def _extractor(txt, htmlpage=None):
         if txt is None:
             return
-        m = ereg.search(txt)
-        if m:
+        if m := ereg.search(txt):
             return htmlregion(u"".join([g for g in m.groups() or m.group()
                                         if g]))
 
@@ -44,8 +43,7 @@ def create_type_extractor(_type):
         page = getattr(htmlpage, 'htmlpage', htmlpage)
         if not hasattr(txt, 'text_content'):
             txt = HtmlPageRegion(page, txt)
-        data = extractor.extract(txt)
-        if data:
+        if data := extractor.extract(txt):
             return extractor.adapt(data, page)
     name = (u"Type Extractor: %s" % _type)
     if six.PY2:

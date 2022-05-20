@@ -40,7 +40,7 @@ def load_annotations(extractor):
         if hasattr(e, 'annotation') and not hasattr(e, u'extractors'):
             meta = e.annotation.metadata
             if u'attribute' not in meta:
-                attribute = [a for a in e.annotation.tag_attributes]
+                attribute = list(e.annotation.tag_attributes)
                 content = meta.get(u'text-content', u'content')
                 attribute, ann = (attribute or [(content, None)])[0]
                 if not e.annotation.surrounds_attribute:
@@ -57,5 +57,4 @@ def load_annotations(extractor):
                 meta[u'field'] = attr
             yield e.annotation
         if hasattr(e, u'extractors') and not hasattr(e, u'schema'):
-            for sub_e in load_annotations(e.extractors):
-                yield sub_e
+            yield from load_annotations(e.extractors)

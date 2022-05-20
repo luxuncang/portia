@@ -95,8 +95,7 @@ class OwnedList(list):
             for v in value:
                 self._validate(v)
                 if v in cache:
-                    raise ValueError(
-                        u"Collection already contains object {}".format(v))
+                    raise ValueError(f"Collection already contains object {v}")
         else:
             self._validate(value)
         try:
@@ -268,15 +267,11 @@ class ModelCollection(OwnedList):
                 self.snapshots[0],
                 self.owner,
                 content_repr)
-        return u'{}<{}>{}'.format(
-            self.__class__.__name__,
-            self.snapshots[0],
-            content_repr)
+        return f'{self.__class__.__name__}<{self.snapshots[0]}>{content_repr}'
 
     def append(self, obj):
         if obj in self:
-            raise ValueError(
-                u"Collection already contains object {}".format(obj))
+            raise ValueError(f"Collection already contains object {obj}")
         super(ModelCollection, self).append(obj.with_snapshots())
         self._set_related(obj)
 
@@ -296,8 +291,7 @@ class ModelCollection(OwnedList):
 
     def insert(self, index, obj):
         if obj in self:
-            raise ValueError(
-                u"Collection already contains object {}".format(obj))
+            raise ValueError(f"Collection already contains object {obj}")
         super(ModelCollection, self).insert(index, obj.with_snapshots())
         self._set_related(obj)
 
@@ -339,7 +333,7 @@ class ModelCollection(OwnedList):
         try:
             index = ModelSnapshots.default_snapshots.index(state)
         except ValueError:
-            raise ValueError(u"'{}' is not a valid state".format(state))
+            raise ValueError(f"'{state}' is not a valid state")
 
         context = {
             'snapshots': ModelSnapshots.default_snapshots[index:]
@@ -374,9 +368,12 @@ class ModelCollection(OwnedList):
         """
         if not isinstance(key, slice):
             try:
-                if not isinstance(key, self.model):
-                    return self.index((self.model, key))
-                return self.index(key)
+                return (
+                    self.index(key)
+                    if isinstance(key, self.model)
+                    else self.index((self.model, key))
+                )
+
             except ValueError:
                 pass
         return key
@@ -412,8 +409,7 @@ class ListDescriptor(object):
 
     def __set__(self, instance, values):
         if not isinstance(values, Sequence):
-            raise ValueError(
-                "You can only assign sequences to '{}'".format(self.attrname))
+            raise ValueError(f"You can only assign sequences to '{self.attrname}'")
         collection = self.__get__(instance)
         for value in values:
             collection._validate(value)

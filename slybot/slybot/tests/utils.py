@@ -51,8 +51,8 @@ def make_spider(start_urls=None, sample=None):
 
 
 def open_spec(name):
-    use_json = True if name.endswith('.json') else False
-    with open('%s/data/templates/%s' % (PATH, name)) as f:
+    use_json = bool(name.endswith('.json'))
+    with open(f'{PATH}/data/templates/{name}') as f:
         return json.load(f) if use_json else read(f)
 
 
@@ -72,8 +72,7 @@ def open_spider_page_and_results(name):
     schemas = sample_spec['schemas']
     results = sample_spec['results']
     if 'original_body' not in sample_spec:
-        sample_spec['original_body'] = open_spec(
-            '{}.html'.format(name[:-len('.json')]))
+        sample_spec['original_body'] = open_spec(f"{name[:-len('.json')]}.html")
     page = UTF8HtmlResponse('http://url', body=sample_spec['original_body'])
     spider = IblSpider(name, make_spider(sample=sample_spec), schemas, {},
                        Settings())

@@ -46,7 +46,7 @@ class SlybotTemplatePageParser(TemplatePageParser):
 
     def read_jannotations(self, html_tag):
         jannotations = self._read_template_annotation(html_tag)
-        return jannotations if jannotations else None
+        return jannotations or None
 
     def build_annotation(self, jannotation, is_open=True):
         annotation = AnnotationTag(self.next_tag_index,
@@ -170,7 +170,7 @@ class SlybotTemplatePage(TemplatePage):
         self.descriptors = descriptors
         self.modifiers = {}
         for descriptor in descriptors.values():
-            self.modifiers.update(getattr(descriptor, 'extractors', {}))
+            self.modifiers |= getattr(descriptor, 'extractors', {})
         super(SlybotTemplatePage, self).__init__(
             htmlpage, token_dict, page_tokens, annotations, template_id,
             ignored_regions, extra_required)

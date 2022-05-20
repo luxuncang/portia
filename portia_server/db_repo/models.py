@@ -24,7 +24,7 @@ class PositiveBigIntegerField(BigIntegerField):
 class RealBinaryField(BinaryField):
     def db_type(self, connection):
         if connection.vendor == 'mysql':
-            return "binary({})".format(self.max_length)
+            return f"binary({self.max_length})"
         else:
             return super(RealBinaryField, self).db_type(connection)
 
@@ -41,7 +41,7 @@ class CompressedBinaryField(BinaryField):
         sql, params = super(CompressedBinaryField, self).select_format(
             compiler, sql, params)
         if compiler.connection.vendor == 'mysql':
-            sql = 'UNCOMPRESS({})'.format(sql)
+            sql = f'UNCOMPRESS({sql})'
         return sql, params
 
 

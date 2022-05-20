@@ -23,7 +23,7 @@ class Selectors(object):
             elif selector_type == 'xpath':
                 result = response.xpath(selector).extract()
             else:
-                msg = 'Selector type not implemented: {}'.format(selector_type)
+                msg = f'Selector type not implemented: {selector_type}'
                 raise Exception(msg)
 
             item[field] = ([item[field]] + result) if field in item else result

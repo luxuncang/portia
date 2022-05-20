@@ -111,7 +111,7 @@ class SlybotIBLExtractor(InstanceBasedLearningExtractor):
                     item = self.validated[template_id]([item])
                 if item:
                     correctly_extracted.append(item)
-            if len(correctly_extracted) > 0:
+            if correctly_extracted:
                 return correctly_extracted, extraction_tree.template
         return None, None
 

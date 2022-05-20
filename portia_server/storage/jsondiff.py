@@ -44,11 +44,10 @@ class Conflict(object):
         if self.other == self.mine:
             return self.mine
         combined = set(self.mine or []) | set(self.other or [])
-        if (self.base is not None and
-                not any(i in combined for i in self.base)):
+        if self.base is not None and all(i not in combined for i in self.base):
             return [self]
-        mine = self.mine if self.mine else []
-        other = self.other if self.other else []
+        mine = self.mine or []
+        other = self.other or []
         i_mine, i_other = iter(mine), iter(other)
         result, new_mine, new_other = [], [], []
         for diff in difflib.Differ().compare([str(i) for i in other],
@@ -60,9 +59,7 @@ class Conflict(object):
                     result.insert(0, Conflict.from_prepared(new_mine,
                                                             new_other,
                                                             []))
-                result.extend(Conflict.resolve_sub_conflict(
-                              [i for i in i_mine],
-                              [i for i in i_other]))
+                result.extend(Conflict.resolve_sub_conflict(list(i_mine), list(i_other)))
                 break
             elif diff.startswith('-'):
                 new_other.append(next(i_other))
@@ -87,7 +84,7 @@ class Conflict(object):
                 self.base == other.base)
 
     def __str__(self):
-        return 'Conflict{}'.format(str((self.mine, self.other, self.base)))
+        return f'Conflict{(self.mine, self.other, self.base)}'
 
     def __repr__(self):
         return str(self)
@@ -102,8 +99,8 @@ def merge_lists(base, mine, other):
         return other
     result = []
     last_conflict = False
-    for i, (m, o, b) in enumerate(zip_longest(mine, other, base,
-                                              fillvalue=_BLANK)):
+    for m, o, b in zip_longest(mine, other, base,
+                                              fillvalue=_BLANK):
         if (m == o and _BLANK not in (m, o) or
                 isinstance(m, dict) and isinstance(o, dict)):
             result.append(m)
@@ -141,10 +138,14 @@ class JsonDiff(object):
         self.unchanged = [k for k in common if new[k] == old[k]]
 
     def op_for_field(self, field_name):
-        for operation in ('ADDED', 'UNCHANGED', 'CHANGED', 'REMOVED'):
-            if field_name in getattr(self, operation.lower()):
-                return operation
-        return None
+        return next(
+            (
+                operation
+                for operation in ('ADDED', 'UNCHANGED', 'CHANGED', 'REMOVED')
+                if field_name in getattr(self, operation.lower())
+            ),
+            None,
+        )
 
 
 FieldDiff = namedtuple(

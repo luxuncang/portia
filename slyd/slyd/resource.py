@@ -29,13 +29,12 @@ class SlydJsonResource(Resource):
         try:
             return Resource.render(self, request)
         except IOError as ex:
-            if ex.errno == errno.ENOENT:
-                if request.is_ajax():
-                    return SlydJsonNoResource().render(request)
-                else:
-                    return NoResource().render(request)
-            else:
+            if ex.errno != errno.ENOENT:
                 raise
+            if request.is_ajax():
+                return SlydJsonNoResource().render(request)
+            else:
+                return NoResource().render(request)
         except ErrorPage as ex:
             if request.is_ajax():
                 ex = SlydJsonErrorPage(ex.code, ex.brief, ex.detail)
@@ -56,7 +55,7 @@ class SlydJsonResource(Resource):
         try:
             return json.load(request.content)
         except ValueError as ex:
-            self.bad_request("Error parsing json. %s" % ex.message)
+            self.bad_request(f"Error parsing json. {ex.message}")
 
 
 class SlydJsonObjectResource(SlydJsonResource):

@@ -14,8 +14,7 @@ class GenericForm:
         self.kwargs = kwargs
 
     def _pick_node(self, doc, selector):
-        nodes = doc.xpath(selector['xpath'])
-        if nodes:
+        if nodes := doc.xpath(selector['xpath']):
             return nodes[0]
 
     def _filter_by_regex(self, lines, regex):
@@ -52,9 +51,10 @@ class GenericForm:
 
     def get_url_field(self, form_descriptor):
         for i, field_descriptor in enumerate(form_descriptor['fields']):
-            if (field_descriptor['type'] == 'inurl'
-                and (not 'file_values' in field_descriptor or
-                     not field_descriptor['file_values'])):
+            if field_descriptor['type'] == 'inurl' and (
+                'file_values' not in field_descriptor
+                or not field_descriptor['file_values']
+            ):
                 yield i, field_descriptor
 
     def fill_generic_form(self, url, body, form_descriptor):

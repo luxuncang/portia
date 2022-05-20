@@ -20,8 +20,10 @@ _FORMAT_PARAMETERS = (
 
 class CsvLinkExtractor(BaseLinkExtractor):
     def __init__(self, column=0, **kwargs):
-        self.fmtparams = dict((key, kwargs.pop(key, default))
-                              for key, default in _FORMAT_PARAMETERS)
+        self.fmtparams = {
+            key: kwargs.pop(key, default) for key, default in _FORMAT_PARAMETERS
+        }
+
         if PY2:
             for key, val in self.fmtparams.items():
                 if isinstance(val, unicode):

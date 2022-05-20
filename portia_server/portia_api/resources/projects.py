@@ -53,7 +53,7 @@ class ProjectDownloadMixin(object):
         except IOError as e:
             raise JsonApiNotFoundError(str(e))
         try:
-            name = u'{}.zip'.format(self.project.name)
+            name = f'{self.project.name}.zip'
         except UnicodeEncodeError:
             name = str(self.project.id)
         return FileResponse(name, content, status=HTTP_200_OK)
@@ -64,9 +64,7 @@ class ProjectDownloadMixin(object):
                 obj = self.storage.repo._repo.get_object(oid)
                 if isinstance(obj, Commit):
                     return obj
-        raise JsonApiNotFoundError(
-            'Could not find commit for `{}`'.format(version)
-        )
+        raise JsonApiNotFoundError(f'Could not find commit for `{version}`')
 
 
 class BaseProjectRoute(JsonApiRoute):
@@ -116,7 +114,9 @@ class ProjectRoute(ProjectDownloadMixin, BaseProjectRoute,
                 'contain letters and numbers'.format(name))
         if name in projects:
             raise JsonApiBadRequestError(
-                'A project with the name "{}" already exists'.format(name))
+                f'A project with the name "{name}" already exists'
+            )
+
 
         # Bootstrap project
         storage = self.storage
@@ -178,7 +178,7 @@ class ProjectRoute(ProjectDownloadMixin, BaseProjectRoute,
             raise JsonApiFeatureNotAvailableError()
         branch = self.storage.branch
         master = self.storage.repo.refs['refs/heads/master']
-        self.storage.repo.refs['refs/heads/%s' % branch] = master
+        self.storage.repo.refs[f'refs/heads/{branch}'] = master
         return self.retrieve()
 
     @detail_route(methods=['post'])
@@ -190,7 +190,9 @@ class ProjectRoute(ProjectDownloadMixin, BaseProjectRoute,
             self.projects[from_project_id]
         except KeyError:
             raise JsonApiNotFoundError(
-                'No project exists with the id "{}"'.format(from_project_id))
+                f'No project exists with the id "{from_project_id}"'
+            )
+
         models = self.data.get('data', [])
         if not models:
             raise JsonApiBadRequestError('No models provided to copy.')
@@ -216,7 +218,7 @@ class ProjectRoute(ProjectDownloadMixin, BaseProjectRoute,
                 'Need either `branch` or `version` arguments to rollback to')
 
         if branch:
-            commit = self.storage.repo.refs['refs/heads/{}'.format(branch)]
+            commit = self.storage.repo.refs[f'refs/heads/{branch}']
         else:
             commit = self.commit_from_short_sha(version).id
         self.storage.repo.refs['refs/heads/master'] = commit

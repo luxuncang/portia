@@ -57,10 +57,7 @@ def decode(html, default=None):
 def _encode_or_decode_string(html, method, default):
     if not default:
         encoding = html_body_declared_encoding(html)
-        if encoding:
-            default = [encoding]
-        else:
-            default = []
+        default = [encoding] if encoding else []
     elif isinstance(default, six.string_types):
         default = [default]
     for encoding in itertools.chain(default, ENCODINGS):
@@ -90,7 +87,7 @@ def open_project_from_dir(project_dir):
     specs = {"spiders": SpiderLoader(storage)}
     for name in ['project', 'items', 'extractors']:
         try:
-            specs[name] = storage.open('{}.json'.format(name))
+            specs[name] = storage.open(f'{name}.json')
         except IOError:
             specs[name] = {}
     return specs
@@ -121,12 +118,10 @@ def htmlpage_from_response(response, _add_tagids=False):
 def load_plugins(settings):
     if settings.get('LOADED_PLUGINS', None):
         return settings.get('LOADED_PLUGINS', None)
-    plugins = settings['PLUGINS']
-    if plugins:
+    if plugins := settings['PLUGINS']:
         return [load_object(p) if isinstance(p, str) else p for p in plugins]
-    else:
-        from slybot.plugins.scrapely_annotations import Annotations
-        return [Annotations]
+    from slybot.plugins.scrapely_annotations import Annotations
+    return [Annotations]
 
 
 def load_plugin_names(settings):
@@ -160,19 +155,29 @@ def include_exclude_filter(include_patterns, exclude_patterns):
     filterf = None
     includef = None
     if include_patterns:
-        pattern = include_patterns[0] if len(include_patterns) == 1 else \
-            "(?:%s)" % '|'.join(include_patterns)
+        pattern = (
+            include_patterns[0]
+            if len(include_patterns) == 1
+            else f"(?:{'|'.join(include_patterns)})"
+        )
+
         includef = re.compile(pattern).search
         filterf = includef
     if exclude_patterns:
-        pattern = exclude_patterns[0] if len(exclude_patterns) == 1 else \
-            "(?:%s)" % '|'.join(exclude_patterns)
+        pattern = (
+            exclude_patterns[0]
+            if len(exclude_patterns) == 1
+            else f"(?:{'|'.join(exclude_patterns)})"
+        )
+
         excludef = re.compile(pattern).search
-        if not includef:
-            filterf = lambda x: not excludef(x)
-        else:
-            filterf = lambda x: includef(x) and not excludef(x)
-    return filterf if filterf else bool
+        filterf = (
+            (lambda x: includef(x) and not excludef(x))
+            if includef
+            else (lambda x: not excludef(x))
+        )
+
+    return filterf or bool
 
 
 class IndexedDict(OrderedDict):
@@ -256,14 +261,14 @@ def serialize_tag(tag):
     for key, val in tag.attributes.items():
         aout = key
         if val is not None:
-            aout += "=" + _quotify(val)
+            aout += f"={_quotify(val)}"
         attributes.append(aout)
     if attributes:
         out += " " + " ".join(attributes)
 
     if tag.tag_type == HtmlTagType.UNPAIRED_TAG:
         out += "/"
-    return out + ">"
+    return f"{out}>"
 
 
 def _must_add_tagid(element):
@@ -347,14 +352,13 @@ class SpiderLoader(object):
 
     def __getitem__(self, key):
         if key not in self.spider_names:
-            raise KeyError('The spider "{}" does not exist'.format(key))
+            raise KeyError(f'The spider "{key}" does not exist')
         if key not in self._spiders:
             self._spiders[key] = self.load_spider(key)
         return self._spiders[key]
 
     def load_spider(self, spider_name):
-        spec = self.storage.open(self.spider_dir,
-                                 '{}.json'.format(spider_name))
+        spec = self.storage.open(self.spider_dir, f'{spider_name}.json')
         try:
             if spec.get('templates'):
                 templates = []
@@ -370,14 +374,10 @@ class SpiderLoader(object):
                 spec.setdefault("templates", []).extend(templates)
             return spec
         except ValueError as e:
-            raise ValueError(
-                "Error parsing spider (invalid JSON): %s: %s" %
-                (spider_name, e)
-            )
+            raise ValueError(f"Error parsing spider (invalid JSON): {spider_name}: {e}")
 
     def keys(self):
-        for spider_name in self.spider_names:
-            yield spider_name
+        yield from self.spider_names
 
     def items(self):
         spiders = chain(self._spiders, self.spider_names - set(self._spiders))

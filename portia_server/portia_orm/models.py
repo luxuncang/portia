@@ -290,8 +290,7 @@ class Spider(Model):
             template['id'] = template.get('page_id') or template.get('name')
             templates.append(template['id'])
             path = self.context['path']
-            path = '/'.join((strip_json(path).strip('/'),
-                            '{}.json'.format(template['id'])))
+            path = '/'.join((strip_json(path).strip('/'), f"{template['id']}.json"))
             sample = json.dumps(template, sort_keys=True, indent=4)
             self.context['storage'].save(path, ContentFile(sample, path))
         data['samples'] = templates
@@ -310,8 +309,7 @@ class Spider(Model):
 
     @pre_load
     def get_init_requests(self, data):
-        init_requests = data.pop('init_requests', [])
-        if init_requests:
+        if init_requests := data.pop('init_requests', []):
             login_request = init_requests[0]
             if isinstance(login_request, dict):
                 data['login_url'] = login_request.get('loginurl', '')
@@ -432,8 +430,7 @@ class Sample(Model, OrderedAnnotationsMixin):
             data['id'] = data['name']
         annotations = (data.pop('plugins', {}).get('annotations-plugin', {})
                            .get('extracts', []))
-        items = [a for a in annotations if a.get('item_container')]
-        if items:
+        if items := [a for a in annotations if a.get('item_container')]:
             return data
 
         extractors = json.load(self.context['storage'].open_with_default(
@@ -462,14 +459,20 @@ class Sample(Model, OrderedAnnotationsMixin):
                 items.append(annotation)
             else:
                 # split annotations with multiple keys in data
-                for data_id, annotation_data in iteritems(
-                        annotation.get('data', {})):
-                    items.append(dict(annotation, **{
-                        'data': {
-                            data_id: annotation_data,
-                        },
-                        'type': 'Annotation',
-                    }))
+                items.extend(
+                    dict(
+                        annotation,
+                        **{
+                            'data': {
+                                data_id: annotation_data,
+                            },
+                            'type': 'Annotation',
+                        }
+                    )
+                    for data_id, annotation_data in iteritems(
+                        annotation.get('data', {})
+                    )
+                )
 
         for item in items:
             container_id = item.get('container_id')
@@ -534,7 +537,7 @@ class Sample(Model, OrderedAnnotationsMixin):
             if (not value or not key.endswith('_body') or
                     key == 'annotated_body'):
                 continue
-            path = '/'.join((base_path, '{}.html'.format(key)))
+            path = '/'.join((base_path, f'{key}.html'))
             html = value.encode('utf-8')
             if hasattr(html, 'encode') and isinstance(html, six.text_type):
                 html = encode(html).decode('utf-8')
@@ -551,18 +554,28 @@ class Sample(Model, OrderedAnnotationsMixin):
             annotation = queue.popleft()
             if annotation.get('item_container'):
                 children = annotation.pop('children', [])
-                repeated_selector = annotation.pop('repeated_selector', None)
-                if repeated_selector:
-                    parent_id = '{}#parent'.format(annotation['id'])
-                    output_annotations.append(OrderedDict(annotation, **{
-                        'id': parent_id,
-                        'repeated': False,
-                    }))
-                    output_annotations.append(OrderedDict(annotation, **{
-                        'container_id': parent_id,
-                        'repeated': True,
-                        'selector': repeated_selector,
-                    }))
+                if repeated_selector := annotation.pop('repeated_selector', None):
+                    parent_id = f"{annotation['id']}#parent"
+                    output_annotations.extend(
+                        (
+                            OrderedDict(
+                                annotation,
+                                **{
+                                    'id': parent_id,
+                                    'repeated': False,
+                                }
+                            ),
+                            OrderedDict(
+                                annotation,
+                                **{
+                                    'container_id': parent_id,
+                                    'repeated': True,
+                                    'selector': repeated_selector,
+                                }
+                            ),
+                        )
+                    )
+
                 else:
                     output_annotations.append(annotation)
                 queue.extendleft(reversed(children))
@@ -753,9 +766,9 @@ class Annotation(BaseAnnotation):
     @classmethod
     def generate_pk(cls, storage):
         data_stores = cls.shared_data_store.get(storage, {})
-        pk = '{}|{}'.format(short_guid(), short_guid())
+        pk = f'{short_guid()}|{short_guid()}'
         while (cls, pk) in data_stores:
-            pk = '{}|{}'.format(short_guid(), short_guid())
+            pk = f'{short_guid()}|{short_guid()}'
         return pk
 
     @pre_load
@@ -776,7 +789,7 @@ class Annotation(BaseAnnotation):
             (ex, {'id': ex}) for ex in annotation_data['extractors'] or [])
 
         data = {
-            'id': '{}|{}'.format(data['id'], data_id),
+            'id': f"{data['id']}|{data_id}",
             'container_id': data['container_id'],
             'attribute': annotation_data['attribute'] or 'content',
             'text_content': data.get('text-content', 'content'),
@@ -792,8 +805,9 @@ class Annotation(BaseAnnotation):
             'field': field,
         }
 
+
         if extractors:
-            data.update({'extractors': extractors})
+            data['extractors'] = extractors
         return data
 
     @post_dump
@@ -847,10 +861,7 @@ class OriginalBody(Model):
         if len(split_path) == 3 and sample_id.endswith('.json'):
             sample_id = strip_json(sample_id)
         name = self.Meta.name
-        return {
-            'id': '{}_{}'.format(sample_id, name),
-            'html': data,
-        }
+        return {'id': f'{sample_id}_{name}', 'html': data}
 
     @post_dump
     def return_html(self, data):
@@ -860,7 +871,7 @@ class OriginalBody(Model):
         try:
             index = ModelSnapshots.default_snapshots.index(state)
         except ValueError:
-            raise ValueError(u"'{}' is not a valid state".format(state))
+            raise ValueError(f"'{state}' is not a valid state")
 
         context = {
             'snapshots': ModelSnapshots.default_snapshots[index:]
@@ -899,10 +910,7 @@ class RenderedBody(Model):
         if len(split_path) == 3 and sample_id.endswith('.json'):
             sample_id = strip_json(sample_id)
         name = self.Meta.name
-        return {
-            'id': '{}_{}'.format(sample_id, name),
-            'html': data,
-        }
+        return {'id': f'{sample_id}_{name}', 'html': data}
 
     @post_dump
     def return_html(self, data):
@@ -912,7 +920,7 @@ class RenderedBody(Model):
         try:
             index = ModelSnapshots.default_snapshots.index(state)
         except ValueError:
-            raise ValueError(u"'{}' is not a valid state".format(state))
+            raise ValueError(f"'{state}' is not a valid state")
 
         context = {
             'snapshots': ModelSnapshots.default_snapshots[index:]

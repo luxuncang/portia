@@ -47,9 +47,7 @@ class JsonApiSerializerMeta(SchemaMeta):
         try:
             model = meta.model
         except AttributeError:
-            raise TypeError(
-                u"Class '{}' is missing the 'Meta.model' attribute.".format(
-                    name))
+            raise TypeError(f"Class '{name}' is missing the 'Meta.model' attribute.")
 
         schema_type = type_from_model_name(model.__name__)
 
@@ -231,11 +229,16 @@ class JsonApiSerializer(with_metaclass(JsonApiSerializerMeta, BaseSchema)):
         return self._validated_profile_updates_data
 
     def deserialize_related_model(self, model, id_):
-        if id_ is None:
-            return None
-        return model(self.storage, **{
-            model._pk_field: id_,
-        })
+        return (
+            None
+            if id_ is None
+            else model(
+                self.storage,
+                **{
+                    model._pk_field: id_,
+                }
+            )
+        )
 
     def update(self, instance, validated_data):
         model = instance.__class__
@@ -258,12 +261,11 @@ class JsonApiSerializer(with_metaclass(JsonApiSerializerMeta, BaseSchema)):
                             setattr(instance, attrname, [
                                 self.deserialize_related_model(related_model, v)
                                 for v in value])
-                            fields.append(attrname)
                         else:
                             setattr(instance, attrname,
                                     self.deserialize_related_model(
                                         related_model, value))
-                            fields.append(attrname)
+                        fields.append(attrname)
                 except ValidationError as err:
                     errors[attrname] = err.messages
 
@@ -311,7 +313,7 @@ class JsonApiSerializer(with_metaclass(JsonApiSerializerMeta, BaseSchema)):
             try:
                 serializer.save()
             except ValidationError as err:
-                errors.update(err.messages)
+                errors |= err.messages
                 continue
 
             self.updated.append(instance)
@@ -336,14 +338,14 @@ class JsonApiSerializer(with_metaclass(JsonApiSerializerMeta, BaseSchema)):
             else:
                 self.instance = self.create(validated_data)
         except ValidationError as err:
-            errors.update(err.messages)
+            errors |= err.messages
 
         if validated_profile_updates_data:
             try:
                 self.apply_profile_updates(validated_profile_updates_data,
                                            self._profile_updates_serializers)
             except ValidationError as err:
-                errors.update(err.messages)
+                errors |= err.messages
 
         if errors:
             formatted_messages = self.format_errors(errors, many=self.many)
@@ -409,12 +411,13 @@ class JsonApiSerializer(with_metaclass(JsonApiSerializerMeta, BaseSchema)):
         for i, update in enumerate(
                 self.initial_data.get('meta', {}).get(alias, [])):
             if 'type' not in update:
-                errors.append({
-                    'detail': '`data` object must include `type` key.',
-                    'source': {
-                        'pointer': '/meta/{}/{}/data'.format(alias, i)
+                errors.append(
+                    {
+                        'detail': '`data` object must include `type` key.',
+                        'source': {'pointer': f'/meta/{alias}/{i}/data'},
                     }
-                })
+                )
+
                 continue
 
             type_ = update['type']
@@ -425,12 +428,13 @@ class JsonApiSerializer(with_metaclass(JsonApiSerializerMeta, BaseSchema)):
             try:
                 serializer_class = get_schema(type_)
             except ImproperlyConfigured:
-                errors.append({
-                    'detail': 'Invalid type: {}.'.format(type_),
-                    'source': {
-                        'pointer': '/meta/{}/{}/data/type'.format(alias, i),
-                    },
-                })
+                errors.append(
+                    {
+                        'detail': f'Invalid type: {type_}.',
+                        'source': {'pointer': f'/meta/{alias}/{i}/data/type'},
+                    }
+                )
+
                 continue
 
             serializer = serializer_class(
@@ -443,13 +447,16 @@ class JsonApiSerializer(with_metaclass(JsonApiSerializerMeta, BaseSchema)):
                 validated_data.append(serializer.validated_data)
                 profile_serializers.append(serializer)
             except (ValidationError, IncorrectTypeError) as err:
-                errors.extend({
-                    'detail': error['detail'],
-                    'source': {
-                        'pointer': '/meta/{}/{}{}'.format(
-                            alias, i, error['source']['pointer'])
-                    },
-                } for error in err.messages.get('errors', []))
+                errors.extend(
+                    {
+                        'detail': error['detail'],
+                        'source': {
+                            'pointer': f"/meta/{alias}/{i}{error['source']['pointer']}"
+                        },
+                    }
+                    for error in err.messages.get('errors', [])
+                )
+
                 continue
 
         if errors:
@@ -504,13 +511,11 @@ class JsonApiSerializer(with_metaclass(JsonApiSerializerMeta, BaseSchema)):
         if 'included' in response:
             response['included'].sort(key=itemgetter('type', 'id'))
 
-        deleted = self.format_profile_references(deleted)
-        if deleted:
+        if deleted := self.format_profile_references(deleted):
             self.add_profile_to_response(DELETED_PROFILE, DELETED_PROFILE_ALIAS,
                                          deleted, response)
 
-        updated = self.format_profile_references(updated)
-        if updated:
+        if updated := self.format_profile_references(updated):
             self.add_profile_to_response(UPDATES_PROFILE, UPDATES_PROFILE_ALIAS,
                                          updated, response)
 
@@ -535,15 +540,10 @@ class JsonApiSerializer(with_metaclass(JsonApiSerializerMeta, BaseSchema)):
         return order_dict(item, RESOURCE_OBJECT_ORDER)
 
     def get_top_level_links(self, data, many):
-        if self.current_url:
-            return OrderedDict([('self', self.current_url)])
-        return None
+        return OrderedDict([('self', self.current_url)]) if self.current_url else None
 
     def get_resource_links(self, item):
-        url = item.get('_url')
-        if url:
-            return OrderedDict([('self', url)])
-        return None
+        return OrderedDict([('self', url)]) if (url := item.get('_url')) else None
 
     def get_url(self, obj):
         return self.opts.url.format(self=obj)
@@ -568,8 +568,7 @@ class JsonApiSerializer(with_metaclass(JsonApiSerializerMeta, BaseSchema)):
             serializer = get_schema(type_)(
                 instance.with_snapshots(('working',)),
                 only=('id',))
-            data = serializer.data.get('data', {})
-            if data:
+            if data := serializer.data.get('data', {}):
                 references.append(data)
 
         return references

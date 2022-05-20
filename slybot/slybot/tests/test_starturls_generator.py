@@ -177,15 +177,21 @@ class StartUrlGenerators(TestCase):
     def test_generate_start_urls_from_range(self):
         genny = UrlGenerator()
         spec = self.specs['range']
-        urls = ["https://www.donedeal.ie/cars-for-sale/i/%s" % i
-                for i in range(100000010, 100000000, -1)]
+        urls = [
+            f"https://www.donedeal.ie/cars-for-sale/i/{i}"
+            for i in range(100000010, 100000000, -1)
+        ]
+
         self.assertEqual(urls, list(genny(spec[0])))
 
     def test_generate_start_urls_from_params_range(self):
         genny = UrlGenerator()
         spec = self.specs['params_range']
-        urls = ["http://www.smbc-comics.com/index.php?p=%s&q=comic" % i
-                for i in range(20, 30, 5)]
+        urls = [
+            f"http://www.smbc-comics.com/index.php?p={i}&q=comic"
+            for i in range(20, 30, 5)
+        ]
+
         self.assertEqual(urls, list(genny(spec[0])))
 
     def test_generate_start_urls_from_spider_arg(self):

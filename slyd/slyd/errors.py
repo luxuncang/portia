@@ -17,10 +17,10 @@ class BaseError(Exception):
         return self._status
 
     def __repr__(self):
-        return '%s(%s)' % (self.__class__.__name__, str(self))
+        return f'{self.__class__.__name__}({str(self)})'
 
     def __str__(self):
-        return '%s: %s' % (self.status, self.title)
+        return f'{self.status}: {self.title}'
 
 
 class BaseHTTPError(BaseError):

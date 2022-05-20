@@ -69,7 +69,7 @@ class FileSerializer(schema.Schema):
         using the sort_keys parameter of json.dumps, so that object keys are
         sorted, while collections can maintain their insertion order
         """
-        return OrderedDict((item for item in sorted(iteritems(data))))
+        return OrderedDict(iter(sorted(iteritems(data))))
 
     def _do_load(self, data, many=None, *args, **kwargs):
         # support the case where we have only a single field to load and we get

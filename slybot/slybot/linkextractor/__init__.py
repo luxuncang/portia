@@ -31,7 +31,5 @@ def create_linkextractor_from_specs(specs):
         return cls(**specs)
     for key, cls, ignore in _TYPE_MAP:
         if key == ltype:
-            if ignore:
-                return cls(**specs)
-            return cls(value, **specs)
+            return cls(**specs) if ignore else cls(value, **specs)
     raise ValueError("Invalid link extractor type specification")

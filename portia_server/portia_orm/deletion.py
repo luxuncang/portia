@@ -54,6 +54,5 @@ def CLEAR(collector, instance, field_name, related_instance):
 
 def PROTECT(collector, instance, field_name, related_instance):
     raise ProtectedError(
-        u"Cannot delete model {} because it is referenced through a "
-        u"protected relationship '{}' of model {}".format(
-            related_instance, field_name, instance))
+        f"Cannot delete model {related_instance} because it is referenced through a protected relationship '{field_name}' of model {instance}"
+    )
